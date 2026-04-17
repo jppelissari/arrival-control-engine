@@ -6,25 +6,27 @@ import DecisionScreen from './DecisionScreen';
 import ResolutionSummary from './ResolutionSummary';
 import { MOCK_CASES } from '../data/mockData';
 
-// Helper for UI Scaling
-const LivingAsset = ({ children, height = "h-[450px]", scale = "scale-[0.70]" }) => (
-  <div className={`w-full ${height} bg-slate-50 rounded-xl border border-slate-200 overflow-hidden shadow-2xl origin-top flex justify-center relative mt-4`}>
-     <div className="absolute top-0 left-0 w-full h-6 bg-slate-200 flex items-center px-4 border-b border-slate-300 z-50">
-        <div className="flex space-x-1.5">
-           <div className="w-2.5 h-2.5 rounded-full bg-slate-400"></div>
-           <div className="w-2.5 h-2.5 rounded-full bg-slate-400"></div>
-           <div className="w-2.5 h-2.5 rounded-full bg-slate-400"></div>
-        </div>
+// Helper for UI Scaling with macOS authentic window control look
+const LivingAsset = ({ children, height = "h-[450px]", scale = "scale-[0.70]", invWidth = "w-[142.8%]", alignTop = true }) => (
+  <div className={`w-full ${height} bg-slate-50 rounded-xl border border-slate-200/60 overflow-hidden shadow-2xl flex flex-col relative mb-12`}>
+     {/* Title Bar Superior */}
+     <div className="w-full h-10 bg-[#f6f6f6] border-b border-slate-200 flex items-center px-4 gap-2 z-50">
+        <div className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E]"></div>
+        <div className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123]"></div>
+        <div className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29]"></div>
      </div>
-     <div className={`w-[142%] origin-top ${scale} pointer-events-none mt-6 relative`}>
-        {children}
+     {/* App Container */}
+     <div className={`flex-1 overflow-hidden relative flex justify-center ${alignTop ? 'items-start' : 'items-center'} bg-white`}>
+        <div className={`${invWidth} origin-top ${scale} pointer-events-none mt-8 absolute top-0`}>
+           {children}
+        </div>
      </div>
   </div>
 );
 
 // Diagrama Nativo: State Machine (S0 -> S6)
 const StateMachineDiagram = () => (
-  <div className="w-full max-w-4xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl p-8 mb-6 shadow-xl overflow-hidden relative">
+  <div className="w-full max-w-4xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl p-10 mb-6 shadow-xl overflow-hidden relative">
      <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
         <Activity size={240} />
      </div>
@@ -78,10 +80,10 @@ const StateMachineDiagram = () => (
 
 const CaseStudyPage = ({ onLaunchPrototype }) => {
   return (
-    <div className="w-full bg-[#f8fafc] text-slate-800 font-sans selection:bg-blue-100 min-h-screen pb-24">
+    <div className="w-full bg-[#f8fafc] text-slate-800 font-sans selection:bg-blue-100 min-h-screen">
       
       {/* PAGE 01 — HERO (Full-width) */}
-      <section className="w-full max-w-[1280px] mx-auto px-6 lg:px-12 py-24 md:py-32 relative">
+      <section className="w-full max-w-[1280px] mx-auto px-6 lg:px-12 py-32 md:py-40 relative">
           <span className="text-xs font-bold tracking-widest text-blue-600 uppercase mb-8 block md:text-left">Operational Product System</span>
           
           <h1 className="text-5xl md:text-7xl font-extrabold text-slate-900 tracking-tight leading-[1.05] mb-6">
@@ -99,17 +101,17 @@ const CaseStudyPage = ({ onLaunchPrototype }) => {
           </p>
           
           <div className="flex flex-col sm:flex-row items-start space-y-4 sm:space-y-0 sm:space-x-4 mb-20 md:mb-10">
-              <button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 px-8 rounded-lg shadow-lg flex items-center transition-all">
+              <button onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })} className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 px-8 rounded-lg shadow-lg flex items-center transition-all focus:ring focus:ring-slate-400">
                   Read Full Case
               </button>
               <button 
                 onClick={onLaunchPrototype} 
-                className="bg-white hover:bg-slate-50 text-slate-900 font-bold py-4 px-8 rounded-lg flex items-center border border-slate-200 shadow-sm transition-all text-left">
+                className="bg-white hover:bg-slate-50 text-slate-900 font-bold py-4 px-8 rounded-lg flex items-center border border-slate-200 shadow-sm transition-all text-left focus:ring ">
                   Launch Interactive Prototype
               </button>
           </div>
           
-          <div className="md:absolute bottom-12 right-12 text-sm text-slate-500 max-w-[240px] font-medium border-l-2 border-slate-300 pl-4">
+          <div className="md:absolute bottom-16 right-12 text-sm text-slate-500 max-w-[240px] font-medium border-l-2 border-slate-300 pl-4">
               Case study developed as a product systems concept at the intersection of operations, service design, and workflow logic.
           </div>
       </section>
@@ -123,7 +125,7 @@ const CaseStudyPage = ({ onLaunchPrototype }) => {
               <div className="prose prose-slate max-w-none text-slate-600 text-lg leading-relaxed">
                   <p>The Arrival Control Engine is a product concept built to handle high-risk arrival flows where coordination depends on timing, ownership, and rapid response across multiple teams.</p>
                   <p>Instead of treating operational issues as isolated incidents, the system models them as structured states. It identifies when a case is still stable, when intervention is required, when fallback logic must be activated, and when resolution should be logged as operational memory.</p>
-                  <p className="font-bold text-slate-900 bg-slate-100 p-6 rounded-xl border border-slate-200 shadow-sm">
+                  <p className="font-bold text-slate-900 bg-slate-100 p-8 rounded-xl border border-slate-200 shadow-sm mt-8">
                       The objective is not to track activity more elegantly.<br/>
                       It is to force the right decision before failure becomes visible.
                   </p>
@@ -156,7 +158,7 @@ const CaseStudyPage = ({ onLaunchPrototype }) => {
               <div className="prose prose-slate max-w-none text-slate-600 text-lg leading-relaxed mb-12">
                   <p>Arrival failures often begin long before anything visibly breaks.</p>
                   <p>A transfer has not been confirmed. An arrival time is unclear. One team assumes another team is handling it. A contingency exists, but no one has formally selected it.</p>
-                  <p className="text-slate-900 font-bold bg-blue-50 border-l-4 border-blue-600 p-6 rounded-r-xl shadow-sm">
+                  <p className="text-slate-900 font-bold bg-blue-50 border-l-4 border-blue-600 p-8 rounded-r-xl shadow-sm my-8">
                       The issue is not lack of effort.<br/>The issue is lack of structure.
                   </p>
                   <p>Without a control layer, risk stays distributed across people, channels, and assumptions until the operation is already in reactive mode.</p>
@@ -211,7 +213,7 @@ const CaseStudyPage = ({ onLaunchPrototype }) => {
                   </div>
               </div>
 
-              <div className="w-full bg-white border border-slate-200 rounded-3xl p-12 mb-8 relative shadow-sm">
+              <div className="w-full bg-white border border-slate-200 rounded-3xl p-12 lg:p-16 mb-8 relative shadow-sm">
                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-center mb-4 text-xs">Operational State Model</h3>
                   <p className="text-center text-slate-600 font-medium mb-12 max-w-xl mx-auto">
                       Each state defines what the system knows, what action is required, and whether the flow can safely continue.
@@ -229,7 +231,7 @@ const CaseStudyPage = ({ onLaunchPrototype }) => {
       </section>
 
       {/* PAGE 05 — SCENARIO (55/45 Split) */}
-      <section className="w-full max-w-[1280px] mx-auto px-6 lg:px-12 py-32 flex flex-col md:flex-row gap-16 lg:gap-24 min-h-screen items-center">
+      <section className="w-full max-w-[1280px] mx-auto px-6 lg:px-12 py-32 flex flex-col md:flex-row gap-16 lg:gap-24 min-h-[70vh] items-center">
           <div className="w-full md:w-[55%] flex flex-col justify-center">
               <h2 className="text-3xl font-extrabold text-slate-900 mb-6 tracking-tight">Example scenario</h2>
               <div className="prose prose-slate max-w-none text-slate-600 text-lg leading-relaxed mb-10">
@@ -273,7 +275,7 @@ const CaseStudyPage = ({ onLaunchPrototype }) => {
       <div className="w-full h-px bg-slate-200"></div>
 
       {/* PAGE 06 — CORE STATES INTRO (Full-width) */}
-      <section className="w-full max-w-[1280px] mx-auto px-6 lg:px-12 py-32 flex flex-col justify-center min-h-[70vh]">
+      <section className="w-full max-w-[1280px] mx-auto px-6 lg:px-12 py-32 flex flex-col justify-center min-h-[60vh]">
           <div className="flex flex-col md:flex-row justify-between items-start mb-16 gap-8">
               <div className="max-w-2xl">
                   <h2 className="text-3xl font-extrabold text-slate-900 mb-6 tracking-tight">Core States</h2>
@@ -418,7 +420,7 @@ const CaseStudyPage = ({ onLaunchPrototype }) => {
       <div className="w-full h-px bg-slate-200"></div>
 
       {/* PAGE 10 — DECISION DESIGN */}
-      <section className="w-full max-w-[1280px] mx-auto px-6 lg:px-12 py-32 flex flex-col min-h-screen justify-center">
+      <section className="w-full max-w-[1280px] mx-auto px-6 lg:px-12 py-32 flex flex-col min-h-[90vh] justify-center">
           <div className="w-full text-center md:text-left mb-20">
               <span className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-6 block">Decision Design</span>
               <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-[1.1] max-w-4xl">
@@ -434,48 +436,48 @@ const CaseStudyPage = ({ onLaunchPrototype }) => {
                       <p>When the current path is no longer reliable, the interface must clearly show who owns the case, what is unresolved, what options exist, and what happens if nothing is selected.</p>
                       <p>The design challenge was to make these moments legible without turning the interface into noise.</p>
                   </div>
-                  <div className="p-6 bg-slate-50 border-l-4 border-slate-300 rounded-r-xl">
-                      <p className="text-sm font-bold text-slate-700 leading-relaxed italic">
+                  <div className="p-8 bg-slate-50 border-l-4 border-slate-300 rounded-r-xl">
+                      <p className="text-base font-bold text-slate-700 leading-relaxed italic">
                           "When a case becomes critical, ambiguity should decrease, not increase."
                       </p>
                   </div>
               </div>
               
-              <div className="w-full xl:w-1/2">
-                  <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-xl w-full relative">
-                      <div className="flex justify-between items-center mb-6">
-                         <h3 className="font-bold text-slate-900 text-lg">Decision required</h3>
-                         <span className="bg-blue-50 text-blue-600 border border-blue-200 text-xs font-bold px-3 py-1 rounded-full">S1 Active</span>
-                      </div>
-                      <p className="text-sm text-slate-600 mb-8 font-medium leading-relaxed">The current path is no longer reliable. A contingency must be selected before the case can continue.</p>
-                      
-                      <div className="space-y-3 mb-8">
-                          <label className="flex items-center p-4 border border-slate-200 rounded-xl cursor-default bg-slate-50/50">
-                              <span className="w-4 h-4 rounded-full border border-slate-300 mr-4"></span>
-                              <span className="font-bold text-slate-500 text-sm">Confirm original path</span>
-                          </label>
-                          <label className="flex items-center p-4 border-2 border-blue-500 rounded-xl cursor-default bg-blue-50/20 shadow-sm relative overflow-hidden">
-                              <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-                              <span className="w-4 h-4 rounded-full border-4 border-blue-600 bg-white mr-4"></span>
-                              <span className="font-bold text-slate-900 text-sm">Activate backup transfer</span>
-                          </label>
-                          <label className="flex items-center p-4 border border-slate-200 rounded-xl cursor-default bg-slate-50/50">
-                              <span className="w-4 h-4 rounded-full border border-slate-300 mr-4"></span>
-                              <span className="font-bold text-slate-500 text-sm">Reassign owner</span>
-                          </label>
-                          <label className="flex items-center p-4 border border-slate-200 rounded-xl cursor-default bg-slate-50/50">
-                              <span className="w-4 h-4 rounded-full border border-slate-300 mr-4"></span>
-                              <span className="font-bold text-slate-500 text-sm">Escalate to front office</span>
-                          </label>
-                      </div>
+              <div className="w-full xl:w-1/2 w-full max-w-lg">
+                 <LivingAsset alignTop={false} height="h-auto">
+                    <div className="bg-white p-8 w-full">
+                        <div className="flex justify-between items-center mb-6">
+                           <h3 className="font-bold text-slate-900 text-lg">Decision required</h3>
+                           <span className="bg-blue-50 text-blue-600 border border-blue-200 text-xs font-bold px-3 py-1 rounded-full">S1 Active</span>
+                        </div>
+                        <p className="text-sm text-slate-600 mb-8 font-medium leading-relaxed">The current path is no longer reliable. A contingency must be selected before the case can continue.</p>
+                        
+                        <div className="space-y-4 mb-8">
+                            <label className="flex items-center p-4 border border-slate-200 rounded-xl cursor-default bg-slate-50/50">
+                                <span className="w-4 h-4 rounded-full border border-slate-300 mr-4"></span>
+                                <span className="font-bold text-slate-500 text-sm">Confirm original path</span>
+                            </label>
+                            <label className="flex items-center p-4 border-2 border-blue-500 rounded-xl cursor-default bg-blue-50/20 shadow-sm relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                                <span className="w-4 h-4 rounded-full border-4 border-blue-600 bg-white mr-4"></span>
+                                <span className="font-bold text-slate-900 text-sm">Activate backup transfer</span>
+                            </label>
+                            <label className="flex items-center p-4 border border-slate-200 rounded-xl cursor-default bg-slate-50/50">
+                                <span className="w-4 h-4 rounded-full border border-slate-300 mr-4"></span>
+                                <span className="font-bold text-slate-500 text-sm">Reassign owner</span>
+                            </label>
+                            <label className="flex items-center p-4 border border-slate-200 rounded-xl cursor-default bg-slate-50/50">
+                                <span className="w-4 h-4 rounded-full border border-slate-300 mr-4"></span>
+                                <span className="font-bold text-slate-500 text-sm">Escalate to front office</span>
+                            </label>
+                        </div>
 
-                      <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-100 text-xs font-medium text-slate-500">
-                          <div><span className="block text-[10px] uppercase tracking-wider text-slate-400 mb-1">Assigned to</span> Unassigned</div>
-                          <div><span className="block text-[10px] uppercase tracking-wider text-slate-400 mb-1">Time to arrival</span> 12m</div>
-                          <div><span className="block text-[10px] uppercase tracking-wider text-slate-400 mb-1">Blocking UI</span> Delay</div>
-                          <div><span className="block text-[10px] uppercase tracking-wider text-slate-400 mb-1">Next</span> Fallback route</div>
-                      </div>
-                  </div>
+                        <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-100 text-xs font-medium text-slate-500">
+                            <div><span className="block text-[10px] uppercase tracking-wider text-slate-400 mb-1">Assigned to</span> Unassigned</div>
+                            <div><span className="block text-[10px] uppercase tracking-wider text-slate-400 mb-1">Time to arrive</span> 12m</div>
+                        </div>
+                    </div>
+                 </LivingAsset>
               </div>
           </div>
       </section>
@@ -499,38 +501,36 @@ const CaseStudyPage = ({ onLaunchPrototype }) => {
           </div>
           
           <div className="w-full xl:w-[42%] flex flex-col justify-center space-y-6">
-              <div className="w-full bg-white p-8 border border-slate-200 rounded-3xl shadow-xl relative overflow-hidden">
-                   <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                      <Lock size={160} />
-                   </div>
-                   <div className="flex items-center mb-8 relative z-10">
-                       <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mr-4 border border-amber-200">
-                           <Lock size={20} />
-                       </div>
-                       <div>
-                           <h3 className="font-bold text-slate-900 text-lg">Protected decision state</h3>
-                           <span className="text-xs font-semibold text-amber-600">Read-Only Mode Active</span>
-                       </div>
-                   </div>
-                   <p className="text-sm font-medium text-slate-600 leading-relaxed mb-8 relative z-10">
-                       A critical case is being actively handled. Conflicting changes are temporarily restricted to preserve a single operational path.
-                   </p>
-                   
-                   <div className="space-y-4 relative z-10">
-                       <div className="flex justify-between items-center py-3 border-b border-slate-100">
-                           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active owner</span>
-                           <span className="text-sm font-bold text-slate-900 bg-slate-100 px-3 py-1 rounded-md">Sarah J.</span>
-                       </div>
-                       <div className="flex justify-between items-center py-3 border-b border-slate-100">
-                           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Editing</span>
-                           <span className="text-sm font-bold text-amber-600 bg-amber-50 border border-amber-100 px-3 py-1 rounded-md">Locked</span>
-                       </div>
-                       <div className="flex justify-between items-center py-3 border-b border-slate-100">
-                           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Decision status</span>
-                           <span className="text-sm font-bold text-slate-700">In Progress</span>
-                       </div>
-                   </div>
-              </div>
+              <LivingAsset alignTop={false} height="h-auto">
+                <div className="w-full bg-white p-10 relative overflow-hidden">
+                     <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                        <Lock size={200} />
+                     </div>
+                     <div className="flex items-center mb-8 relative z-10 w-full bg-amber-50 p-6 rounded-2xl border border-amber-200 shadow-sm">
+                         <div className="w-12 h-12 bg-white text-amber-600 rounded-full flex items-center justify-center mr-4 shadow-sm border border-amber-100 flex-shrink-0">
+                             <Lock size={20} />
+                         </div>
+                         <div>
+                             <h3 className="font-bold text-amber-900 text-lg leading-tight mb-0.5">Read-Only Active</h3>
+                             <span className="text-xs font-semibold text-amber-700">Protected Decision State</span>
+                         </div>
+                     </div>
+                     <p className="text-sm font-medium text-slate-600 leading-relaxed mb-8 relative z-10 px-2">
+                         A critical case is being actively handled. Conflicting changes are temporarily restricted to preserve a single operational path.
+                     </p>
+                     
+                     <div className="space-y-4 relative z-10 px-2">
+                         <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active owner</span>
+                             <span className="text-sm font-bold text-slate-900 bg-slate-100 px-3 py-1 rounded-md">Sarah J.</span>
+                         </div>
+                         <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Editing privileges</span>
+                             <span className="text-sm font-bold text-amber-600 bg-amber-50 border border-amber-100 px-3 py-1 rounded-md">Locked globally</span>
+                         </div>
+                     </div>
+                </div>
+              </LivingAsset>
               <p className="text-sm text-slate-500 font-medium italic text-center px-4">
                   Concurrency control protects the operation from internal contradiction during live response.
               </p>
@@ -542,12 +542,12 @@ const CaseStudyPage = ({ onLaunchPrototype }) => {
           <div className="max-w-[1280px] mx-auto px-6 lg:px-12 w-full">
               <span className="text-xs font-bold tracking-widest text-slate-500 uppercase mb-12 block text-center lg:text-left">Designing for Real Operations</span>
               
-              <div className="flex flex-col lg:flex-row gap-16 lg:gap-24 mb-24">
+              <div className="flex flex-col lg:flex-row gap-16 lg:gap-24 mb-32">
                   <div className="w-full lg:w-1/2">
                       <div className="prose prose-invert max-w-none text-slate-400 text-lg leading-relaxed mb-10">
                           <p>This system was designed as a product concept, but it was intentionally grounded in implementation reality.</p>
                           <p>That meant considering how the interface, state logic, and operational rules would behave under live conditions: partial information, multiple actors, changing dependencies, and time pressure.</p>
-                          <p className="text-slate-100 font-bold text-2xl mt-12 border-l-4 border-blue-500 pl-6 py-2 leading-snug bg-slate-800/50 rounded-r-xl">
+                          <p className="text-slate-100 font-bold text-2xl mt-12 border-l-4 border-blue-500 pl-8 py-2 leading-snug">
                               The design goal was not to make the operation appear organized.<br/>
                               It was to make the system credible enough to support real use.
                           </p>
@@ -580,19 +580,26 @@ const CaseStudyPage = ({ onLaunchPrototype }) => {
                   </div>
               </div>
 
-              {/* Tech Stack Area */}
-              <div className="w-full pt-16 border-t border-slate-800 flex flex-col lg:flex-row justify-between items-center gap-8">
-                  <span className="text-xs font-mono tracking-widest text-slate-600 uppercase">Technical Foundation Stack</span>
-                  <div className="flex flex-wrap justify-center lg:justify-end gap-3 text-sm font-bold text-slate-300">
-                      <div className="px-5 py-2.5 bg-slate-950 rounded-lg flex items-center border border-slate-800"><Code size={16} className="text-blue-400 mr-2"/> React</div>
-                      <div className="px-5 py-2.5 bg-slate-950 rounded-lg flex items-center border border-slate-800"><Activity size={16} className="text-emerald-400 mr-2"/> Vite</div>
-                      <div className="px-5 py-2.5 bg-slate-950 rounded-lg flex items-center border border-slate-800"><LayoutTemplate size={16} className="text-sky-400 mr-2"/> Tailwind CSS</div>
-                      <div className="px-5 py-2.5 bg-slate-950 rounded-lg flex items-center border border-slate-800"><Server size={16} className="text-purple-400 mr-2"/> Vercel CI/CD</div>
+              {/* Tech Stack & Workflow Area */}
+              <div className="w-full pt-20 border-t border-slate-800 flex flex-col items-center">
+                  <span className="text-xs font-mono tracking-widest text-slate-500 uppercase mb-8 text-center text-blue-500">The Hybrid Workflow</span>
+                  <div className="text-center text-slate-300 font-medium mb-16 max-w-4xl text-lg leading-relaxed px-4">
+                      Initial code prototype generated to validate state logic &nbsp;→&nbsp; 
+                      <span className="text-blue-400 font-bold border-b border-blue-400/30 pb-0.5">Deep visual and UX refinement in Figma</span> &nbsp;→&nbsp; 
+                      Final production-ready code implementation &nbsp;→&nbsp; 
+                      Automated Cloud Deployment.
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-4 text-sm font-bold text-slate-300">
+                      <div className="px-6 py-3.5 bg-slate-950 rounded-xl flex items-center border border-slate-800 shadow-lg"><Code size={18} className="text-[#A259FF] mr-3"/> Figma</div>
+                      <div className="px-6 py-3.5 bg-slate-950 rounded-xl flex items-center border border-slate-800 shadow-lg"><Code size={18} className="text-blue-400 mr-3"/> React</div>
+                      <div className="px-6 py-3.5 bg-slate-950 rounded-xl flex items-center border border-slate-800 shadow-lg"><Activity size={18} className="text-emerald-400 mr-3"/> Vite</div>
+                      <div className="px-6 py-3.5 bg-slate-950 rounded-xl flex items-center border border-slate-800 shadow-lg"><LayoutTemplate size={18} className="text-sky-400 mr-3"/> Tailwind CSS</div>
+                      <div className="px-6 py-3.5 bg-slate-950 rounded-xl flex items-center border border-slate-800 shadow-lg"><Server size={18} className="text-white mr-3"/> Vercel CI/CD</div>
                   </div>
               </div>
 
-              <div className="mt-20 text-center lg:text-left">
-                  <p className="text-sm text-slate-500 font-medium italic">A workflow that looks coherent in static design can still fail in production if state logic is weak.</p>
+              <div className="mt-24 text-center">
+                  <p className="text-sm text-slate-500 font-medium italic">"A workflow that looks coherent in static design can still fail in production if state logic is weak."</p>
               </div>
           </div>
       </section>
@@ -652,6 +659,18 @@ const CaseStudyPage = ({ onLaunchPrototype }) => {
               <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Designed to prevent visible failure before it happens.</p>
           </div>
       </section>
+
+      {/* FINAL FOOTER */}
+      <footer className="w-full border-t border-slate-200 py-16 bg-white text-center flex flex-col items-center justify-center">
+          <div className="text-lg font-extrabold text-slate-900 tracking-tight mb-6 uppercase tracking-widest">José Pelissari</div>
+          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-sm font-bold text-slate-500">
+              <a href="https://jppelissari.com" target="_blank" rel="noreferrer" className="hover:text-blue-600 transition-colors">jppelissari.com</a>
+              <span className="text-slate-300 hidden sm:block">•</span>
+              <a href="mailto:josepelissari@jppelissari.com" className="hover:text-blue-600 transition-colors">josepelissari@jppelissari.com</a>
+              <span className="text-slate-300 hidden sm:block">•</span>
+              <a href="https://linkedin.com/in/jppelissari/" target="_blank" rel="noreferrer" className="hover:text-blue-600 transition-colors">linkedin.com/in/jppelissari/</a>
+          </div>
+      </footer>
 
     </div>
   );
