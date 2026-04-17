@@ -6,9 +6,9 @@ import DecisionScreen from './DecisionScreen';
 import ResolutionSummary from './ResolutionSummary';
 import { MOCK_CASES } from '../data/mockData';
 
-// Helper for UI Scaling (Sprint 2)
-const LivingAssetSprint2 = ({ children, height = "h-[450px]", scale = "scale-[0.70]" }) => (
-  <div className={`w-full ${height} bg-slate-50 rounded-xl border border-slate-200 overflow-hidden shadow-2xl flex justify-center relative mt-4`}>
+// Helper for UI Scaling
+const LivingAsset = ({ children, height = "h-[450px]", scale = "scale-[0.70]" }) => (
+  <div className={`w-full ${height} bg-slate-50 rounded-xl border border-slate-200 overflow-hidden shadow-2xl origin-top flex justify-center relative mt-4`}>
      <div className="absolute top-0 left-0 w-full h-6 bg-slate-200 flex items-center px-4 border-b border-slate-300 z-50">
         <div className="flex space-x-1.5">
            <div className="w-2.5 h-2.5 rounded-full bg-slate-400"></div>
@@ -30,7 +30,6 @@ const StateMachineDiagram = () => (
      </div>
      
      <div className="flex flex-col items-center w-full space-y-6 pt-4">
-        {/* Row 1 */}
         <div className="flex justify-center w-full relative">
            <div className="bg-slate-800 border-l-4 border-emerald-500 text-white px-6 py-4 rounded-lg shadow-md w-64 z-10 text-left">
               <span className="block text-emerald-400 font-mono text-xs mb-1">STATE 0 // STABLE</span>
@@ -38,7 +37,6 @@ const StateMachineDiagram = () => (
            </div>
         </div>
         
-        {/* Row 2 */}
         <div className="flex flex-col items-center w-full relative">
            <div className="h-6 w-0.5 bg-slate-700 mb-2"></div>
            <ArrowDown size={16} className="text-slate-600 mb-2" />
@@ -48,12 +46,9 @@ const StateMachineDiagram = () => (
            </div>
         </div>
 
-        {/* Path Split */}
         <div className="w-80 h-8 border-t-2 border-x-2 border-slate-700 rounded-t-xl mb-[-4px]"></div>
 
-        {/* Row 3 - Branching */}
         <div className="flex justify-between w-full max-w-md px-4">
-           {/* Left Branch */}
            <div className="flex flex-col items-center">
               <ArrowDown size={16} className="text-slate-600 mb-2" />
               <div className="bg-slate-800 border-l-4 border-purple-500 text-white px-5 py-4 rounded-lg shadow-md w-48 z-10 text-left">
@@ -68,7 +63,6 @@ const StateMachineDiagram = () => (
               </div>
            </div>
 
-           {/* Right Branch */}
            <div className="flex flex-col items-center">
               <ArrowDown size={16} className="text-slate-600 mb-2" />
               <div className="bg-slate-800 border-l-4 border-amber-500 text-white px-5 py-4 rounded-lg shadow-md w-48 z-10 flex flex-col items-start bg-amber-900/10">
@@ -84,7 +78,7 @@ const StateMachineDiagram = () => (
 
 const CaseStudyPage = ({ onLaunchPrototype }) => {
   return (
-    <div className="w-full bg-[#f8fafc] text-slate-800 font-sans selection:bg-blue-100 min-h-screen">
+    <div className="w-full bg-[#f8fafc] text-slate-800 font-sans selection:bg-blue-100 min-h-screen pb-24">
       
       {/* PAGE 01 — HERO (Full-width) */}
       <section className="w-full max-w-[1280px] mx-auto px-6 lg:px-12 py-24 md:py-32 relative">
@@ -105,13 +99,13 @@ const CaseStudyPage = ({ onLaunchPrototype }) => {
           </p>
           
           <div className="flex flex-col sm:flex-row items-start space-y-4 sm:space-y-0 sm:space-x-4 mb-20 md:mb-10">
-              <button className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 px-8 rounded-lg shadow-lg flex items-center transition-all">
+              <button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 px-8 rounded-lg shadow-lg flex items-center transition-all">
                   Read Full Case
               </button>
               <button 
                 onClick={onLaunchPrototype} 
                 className="bg-white hover:bg-slate-50 text-slate-900 font-bold py-4 px-8 rounded-lg flex items-center border border-slate-200 shadow-sm transition-all text-left">
-                  View System Logic
+                  Launch Interactive Prototype
               </button>
           </div>
           
@@ -123,7 +117,7 @@ const CaseStudyPage = ({ onLaunchPrototype }) => {
       <div className="w-full h-px bg-slate-200"></div>
 
       {/* PAGE 02 — OVERVIEW (60/40 Split) */}
-      <section className="w-full max-w-[1280px] mx-auto px-6 lg:px-12 py-24 flex flex-col md:flex-row gap-16 lg:gap-24">
+      <section className="w-full max-w-[1280px] mx-auto px-6 lg:px-12 py-32 flex flex-col md:flex-row gap-16 lg:gap-24">
           <div className="w-full md:w-[60%]">
               <h2 className="text-3xl font-extrabold text-slate-900 mb-8 tracking-tight">Overview</h2>
               <div className="prose prose-slate max-w-none text-slate-600 text-lg leading-relaxed">
@@ -156,7 +150,7 @@ const CaseStudyPage = ({ onLaunchPrototype }) => {
       <div className="w-full h-px bg-slate-200"></div>
 
       {/* PAGE 03 — PROBLEM (62/38 Split) */}
-      <section className="w-full max-w-[1280px] mx-auto px-6 lg:px-12 py-24 flex flex-col md:flex-row gap-16 lg:gap-24">
+      <section className="w-full max-w-[1280px] mx-auto px-6 lg:px-12 py-32 flex flex-col md:flex-row gap-16 lg:gap-24">
           <div className="w-full md:w-[62%]">
               <h2 className="text-3xl font-extrabold text-slate-900 mb-8 tracking-tight">Defining the Problem</h2>
               <div className="prose prose-slate max-w-none text-slate-600 text-lg leading-relaxed mb-12">
@@ -204,7 +198,7 @@ const CaseStudyPage = ({ onLaunchPrototype }) => {
       <div className="w-full h-px bg-slate-200"></div>
 
       {/* PAGE 04 — SYSTEM LOGIC (Full width) */}
-      <section className="w-full bg-slate-50 py-24 border-b border-slate-200">
+      <section className="w-full bg-slate-50 py-32 border-b border-slate-200">
           <div className="max-w-[1280px] mx-auto px-6 lg:px-12">
               <div className="max-w-3xl mb-16">
                   <h2 className="text-3xl font-extrabold text-slate-900 mb-8 tracking-tight">A State-Based System</h2>
@@ -353,9 +347,9 @@ const CaseStudyPage = ({ onLaunchPrototype }) => {
           </div>
           
           <div className="w-full xl:w-1/2 flex items-center justify-center">
-              <LivingAssetSprint2 height="h-[600px]">
+              <LivingAsset height="h-[600px]">
                  <Dashboard onSelectCase={() => {}} onLockWarning={() => {}} />
-              </LivingAssetSprint2>
+              </LivingAsset>
           </div>
       </section>
 
@@ -392,9 +386,9 @@ const CaseStudyPage = ({ onLaunchPrototype }) => {
           </div>
           
           <div className="w-full xl:w-1/2 flex items-center justify-center">
-              <LivingAssetSprint2 height="h-[600px]">
+              <LivingAsset height="h-[600px]">
                  <DecisionScreen caseData={MOCK_CASES[0]} onConfirm={() => {}} onBack={() => {}} />
-              </LivingAssetSprint2>
+              </LivingAsset>
           </div>
       </section>
 
@@ -403,10 +397,10 @@ const CaseStudyPage = ({ onLaunchPrototype }) => {
       {/* PAGE 09 — S4 + RESOLUTION LOGIC (60/40 Split) */}
       <section className="w-full max-w-[1280px] mx-auto px-6 lg:px-12 py-32 flex flex-col xl:flex-row gap-16 min-h-screen items-center">
           <div className="w-full xl:w-[60%] flex flex-col justify-center">
-              <span className="text-xs font-bold tracking-widest text-slate-500 uppercase mb-6 block">S4 — Resolution Recorded</span>
+              <span className="text-xs font-bold tracking-widest text-emerald-600 uppercase mb-6 block">S4 — Resolution Recorded</span>
               <div className="prose prose-slate max-w-none text-slate-600 text-lg leading-relaxed mb-10">
                   <p>The issue has been resolved and the system captures how that happened. The selected path, the cause, and the outcome are preserved as structured operational memory.</p>
-                  <p className="font-bold text-slate-900 border-l-4 border-slate-900 pl-6 py-2 my-10 text-2xl leading-snug">
+                  <p className="font-bold text-slate-900 border-l-4 border-emerald-500 pl-6 py-2 my-10 text-2xl leading-snug">
                       Resolution is not just closure.<br/>It is structured memory.
                   </p>
                   <p>Operational systems improve when they do more than close cases. They improve when they preserve cause, response, and outcome in a form that can be reviewed, measured, and used to prevent repeat failure.</p>
@@ -415,9 +409,247 @@ const CaseStudyPage = ({ onLaunchPrototype }) => {
           </div>
           
           <div className="w-full xl:w-[40%] flex items-center justify-center">
-              <LivingAssetSprint2 height="h-[650px]" scale="scale-[0.80]">
+              <LivingAsset height="h-[650px]" scale="scale-[0.80]">
                  <ResolutionSummary caseData={MOCK_CASES[0]} onBack={() => {}} />
-              </LivingAssetSprint2>
+              </LivingAsset>
+          </div>
+      </section>
+
+      <div className="w-full h-px bg-slate-200"></div>
+
+      {/* PAGE 10 — DECISION DESIGN */}
+      <section className="w-full max-w-[1280px] mx-auto px-6 lg:px-12 py-32 flex flex-col min-h-screen justify-center">
+          <div className="w-full text-center md:text-left mb-20">
+              <span className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-6 block">Decision Design</span>
+              <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-[1.1] max-w-4xl">
+                  Most operational systems are designed to display activity.<br/>
+                  <span className="text-blue-600">This one is designed to force decisions.</span>
+              </h2>
+          </div>
+          
+          <div className="flex flex-col xl:flex-row gap-16 lg:gap-24 items-center">
+              <div className="w-full xl:w-1/2 flex flex-col justify-center">
+                  <div className="prose prose-slate max-w-none text-slate-600 text-lg leading-relaxed mb-10">
+                      <p>The most important design move in this system is structural.</p>
+                      <p>When the current path is no longer reliable, the interface must clearly show who owns the case, what is unresolved, what options exist, and what happens if nothing is selected.</p>
+                      <p>The design challenge was to make these moments legible without turning the interface into noise.</p>
+                  </div>
+                  <div className="p-6 bg-slate-50 border-l-4 border-slate-300 rounded-r-xl">
+                      <p className="text-sm font-bold text-slate-700 leading-relaxed italic">
+                          "When a case becomes critical, ambiguity should decrease, not increase."
+                      </p>
+                  </div>
+              </div>
+              
+              <div className="w-full xl:w-1/2">
+                  <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-xl w-full relative">
+                      <div className="flex justify-between items-center mb-6">
+                         <h3 className="font-bold text-slate-900 text-lg">Decision required</h3>
+                         <span className="bg-blue-50 text-blue-600 border border-blue-200 text-xs font-bold px-3 py-1 rounded-full">S1 Active</span>
+                      </div>
+                      <p className="text-sm text-slate-600 mb-8 font-medium leading-relaxed">The current path is no longer reliable. A contingency must be selected before the case can continue.</p>
+                      
+                      <div className="space-y-3 mb-8">
+                          <label className="flex items-center p-4 border border-slate-200 rounded-xl cursor-default bg-slate-50/50">
+                              <span className="w-4 h-4 rounded-full border border-slate-300 mr-4"></span>
+                              <span className="font-bold text-slate-500 text-sm">Confirm original path</span>
+                          </label>
+                          <label className="flex items-center p-4 border-2 border-blue-500 rounded-xl cursor-default bg-blue-50/20 shadow-sm relative overflow-hidden">
+                              <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                              <span className="w-4 h-4 rounded-full border-4 border-blue-600 bg-white mr-4"></span>
+                              <span className="font-bold text-slate-900 text-sm">Activate backup transfer</span>
+                          </label>
+                          <label className="flex items-center p-4 border border-slate-200 rounded-xl cursor-default bg-slate-50/50">
+                              <span className="w-4 h-4 rounded-full border border-slate-300 mr-4"></span>
+                              <span className="font-bold text-slate-500 text-sm">Reassign owner</span>
+                          </label>
+                          <label className="flex items-center p-4 border border-slate-200 rounded-xl cursor-default bg-slate-50/50">
+                              <span className="w-4 h-4 rounded-full border border-slate-300 mr-4"></span>
+                              <span className="font-bold text-slate-500 text-sm">Escalate to front office</span>
+                          </label>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-100 text-xs font-medium text-slate-500">
+                          <div><span className="block text-[10px] uppercase tracking-wider text-slate-400 mb-1">Assigned to</span> Unassigned</div>
+                          <div><span className="block text-[10px] uppercase tracking-wider text-slate-400 mb-1">Time to arrival</span> 12m</div>
+                          <div><span className="block text-[10px] uppercase tracking-wider text-slate-400 mb-1">Blocking UI</span> Delay</div>
+                          <div><span className="block text-[10px] uppercase tracking-wider text-slate-400 mb-1">Next</span> Fallback route</div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </section>
+
+      <div className="w-full h-px bg-slate-200"></div>
+
+      {/* PAGE 11 — CONCURRENCY / CONTROL */}
+      <section className="w-full max-w-[1280px] mx-auto px-6 lg:px-12 py-32 flex flex-col xl:flex-row gap-16 lg:gap-24 min-h-screen items-center">
+          <div className="w-full xl:w-[58%] flex flex-col justify-center">
+              <span className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-8 block">Concurrency and Control</span>
+              <div className="prose prose-slate max-w-none text-slate-600 text-lg leading-relaxed mb-10">
+                  <p>A critical operational system cannot assume that parallel action is harmless.</p>
+                  <p>Two teams acting at the same time can create contradictory updates, duplicate intervention, or conflicting decisions. To prevent that, the system introduces controlled concurrency and lock logic during sensitive moments.</p>
+                  <p>When a case enters a critical state, control becomes explicit. The goal is not to limit collaboration. It is to preserve the integrity of the decision.</p>
+              </div>
+              <blockquote className="border-l-4 border-amber-500 pl-8 my-6">
+                  <p className="text-2xl font-bold text-slate-900 leading-snug">
+                      "In multi-team environments, state integrity is part of the user experience."
+                  </p>
+              </blockquote>
+          </div>
+          
+          <div className="w-full xl:w-[42%] flex flex-col justify-center space-y-6">
+              <div className="w-full bg-white p-8 border border-slate-200 rounded-3xl shadow-xl relative overflow-hidden">
+                   <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                      <Lock size={160} />
+                   </div>
+                   <div className="flex items-center mb-8 relative z-10">
+                       <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mr-4 border border-amber-200">
+                           <Lock size={20} />
+                       </div>
+                       <div>
+                           <h3 className="font-bold text-slate-900 text-lg">Protected decision state</h3>
+                           <span className="text-xs font-semibold text-amber-600">Read-Only Mode Active</span>
+                       </div>
+                   </div>
+                   <p className="text-sm font-medium text-slate-600 leading-relaxed mb-8 relative z-10">
+                       A critical case is being actively handled. Conflicting changes are temporarily restricted to preserve a single operational path.
+                   </p>
+                   
+                   <div className="space-y-4 relative z-10">
+                       <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active owner</span>
+                           <span className="text-sm font-bold text-slate-900 bg-slate-100 px-3 py-1 rounded-md">Sarah J.</span>
+                       </div>
+                       <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Editing</span>
+                           <span className="text-sm font-bold text-amber-600 bg-amber-50 border border-amber-100 px-3 py-1 rounded-md">Locked</span>
+                       </div>
+                       <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Decision status</span>
+                           <span className="text-sm font-bold text-slate-700">In Progress</span>
+                       </div>
+                   </div>
+              </div>
+              <p className="text-sm text-slate-500 font-medium italic text-center px-4">
+                  Concurrency control protects the operation from internal contradiction during live response.
+              </p>
+          </div>
+      </section>
+
+      {/* PAGE 12 — SYSTEM FOUNDATIONS (Dark Block) */}
+      <section className="w-full bg-slate-900 py-32 md:py-48 text-slate-100 min-h-screen flex flex-col justify-center">
+          <div className="max-w-[1280px] mx-auto px-6 lg:px-12 w-full">
+              <span className="text-xs font-bold tracking-widest text-slate-500 uppercase mb-12 block text-center lg:text-left">Designing for Real Operations</span>
+              
+              <div className="flex flex-col lg:flex-row gap-16 lg:gap-24 mb-24">
+                  <div className="w-full lg:w-1/2">
+                      <div className="prose prose-invert max-w-none text-slate-400 text-lg leading-relaxed mb-10">
+                          <p>This system was designed as a product concept, but it was intentionally grounded in implementation reality.</p>
+                          <p>That meant considering how the interface, state logic, and operational rules would behave under live conditions: partial information, multiple actors, changing dependencies, and time pressure.</p>
+                          <p className="text-slate-100 font-bold text-2xl mt-12 border-l-4 border-blue-500 pl-6 py-2 leading-snug bg-slate-800/50 rounded-r-xl">
+                              The design goal was not to make the operation appear organized.<br/>
+                              It was to make the system credible enough to support real use.
+                          </p>
+                      </div>
+                  </div>
+                  
+                  <div className="w-full lg:w-1/2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                          <div className="bg-slate-800 border border-slate-700 p-8 rounded-2xl shadow-xl hover:bg-slate-700/50 transition-all">
+                              <Cpu className="text-blue-400 mb-6" size={28} />
+                              <span className="font-bold text-slate-100 block mb-3">State integrity across teams</span>
+                              <p className="text-sm text-slate-400 leading-relaxed font-medium">Centralized logic prevents conflicting operations at scale.</p>
+                          </div>
+                          <div className="bg-slate-800 border border-slate-700 p-8 rounded-2xl shadow-xl hover:bg-slate-700/50 transition-all">
+                              <Activity className="text-emerald-400 mb-6" size={28} />
+                              <span className="font-bold text-slate-100 block mb-3">Real-time visibility</span>
+                              <p className="text-sm text-slate-400 leading-relaxed font-medium">Latency-free propagation of critical events.</p>
+                          </div>
+                          <div className="bg-slate-800 border border-slate-700 p-8 rounded-2xl shadow-xl hover:bg-slate-700/50 transition-all">
+                              <ArrowRight className="text-amber-400 mb-6" size={28} />
+                              <span className="font-bold text-slate-100 block mb-3">Structured fallback paths</span>
+                              <p className="text-sm text-slate-400 leading-relaxed font-medium">Systematic contingencies rather than informal overrides.</p>
+                          </div>
+                          <div className="bg-slate-800 border border-slate-700 p-8 rounded-2xl shadow-xl hover:bg-slate-700/50 transition-all">
+                              <Database className="text-purple-400 mb-6" size={28} />
+                              <span className="font-bold text-slate-100 block mb-3">Reliable case history</span>
+                              <p className="text-sm text-slate-400 leading-relaxed font-medium">Auditable resolution memory for operational training.</p>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
+              {/* Tech Stack Area */}
+              <div className="w-full pt-16 border-t border-slate-800 flex flex-col lg:flex-row justify-between items-center gap-8">
+                  <span className="text-xs font-mono tracking-widest text-slate-600 uppercase">Technical Foundation Stack</span>
+                  <div className="flex flex-wrap justify-center lg:justify-end gap-3 text-sm font-bold text-slate-300">
+                      <div className="px-5 py-2.5 bg-slate-950 rounded-lg flex items-center border border-slate-800"><Code size={16} className="text-blue-400 mr-2"/> React</div>
+                      <div className="px-5 py-2.5 bg-slate-950 rounded-lg flex items-center border border-slate-800"><Activity size={16} className="text-emerald-400 mr-2"/> Vite</div>
+                      <div className="px-5 py-2.5 bg-slate-950 rounded-lg flex items-center border border-slate-800"><LayoutTemplate size={16} className="text-sky-400 mr-2"/> Tailwind CSS</div>
+                      <div className="px-5 py-2.5 bg-slate-950 rounded-lg flex items-center border border-slate-800"><Server size={16} className="text-purple-400 mr-2"/> Vercel CI/CD</div>
+                  </div>
+              </div>
+
+              <div className="mt-20 text-center lg:text-left">
+                  <p className="text-sm text-slate-500 font-medium italic">A workflow that looks coherent in static design can still fail in production if state logic is weak.</p>
+              </div>
+          </div>
+      </section>
+
+      {/* PAGE 13 — OUTCOME */}
+      <section className="w-full max-w-[1280px] mx-auto px-6 lg:px-12 py-32 flex flex-col md:flex-row gap-16 lg:gap-24 min-h-[80vh] items-center">
+          <div className="w-full md:w-[60%] flex flex-col justify-center">
+              <span className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-8 block">Outcome</span>
+              <div className="prose prose-slate max-w-none text-slate-600 text-lg leading-relaxed mb-10">
+                  <p>The Arrival Control Engine reframes arrival coordination from reactive handling into structured control.</p>
+                  <p>Instead of relying on people to notice risk in time, the system identifies it.<br/>
+                     Instead of informal escalation, it enforces decision points.<br/>
+                     Instead of invisible fallback, it creates accountable contingency paths.</p>
+                  <p className="mt-10 font-bold text-slate-900 bg-slate-100 p-6 rounded-t-xl border-b-2 border-blue-500">The result is not simply faster execution. It is:</p>
+                  <ul className="bg-slate-50 p-6 rounded-b-xl border border-slate-100 border-t-0 m-0 text-slate-700">
+                      <li className="mb-2">fewer avoidable failures</li>
+                      <li className="mb-2">clearer ownership</li>
+                      <li className="mb-2">less escalation noise</li>
+                      <li className="mb-2">stronger operational trust</li>
+                      <li>better outcomes before the guest experiences the breakdown</li>
+                  </ul>
+              </div>
+              <blockquote className="border-l-4 border-slate-900 pl-8 my-6">
+                  <p className="text-2xl md:text-3xl font-bold text-slate-900 leading-snug">
+                      "Most systems track activity. This one was designed to govern decisions."
+                  </p>
+              </blockquote>
+          </div>
+          
+          <div className="w-full md:w-[40%] flex flex-col space-y-6">
+              <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-blue-300 transition-colors">
+                  <span className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-4 block group-hover:text-blue-500 transition-colors">Operational clarity</span>
+                  <p className="text-slate-800 font-bold">Ownership becomes explicit before the case fragments.</p>
+              </div>
+              <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-blue-300 transition-colors">
+                  <span className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-4 block group-hover:text-blue-500 transition-colors">Reduced escalation noise</span>
+                  <p className="text-slate-800 font-bold">Teams spend less time reconstructing status through messages and follow-ups.</p>
+              </div>
+              <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-blue-300 transition-colors">
+                  <span className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-4 block group-hover:text-blue-500 transition-colors">More reliable fallback</span>
+                  <p className="text-slate-800 font-bold">Contingency is treated as a governed path, not improvised response.</p>
+              </div>
+          </div>
+      </section>
+
+      <div className="w-full h-px bg-slate-200"></div>
+
+      {/* PAGE 14 — FINAL REFLECTION (Full-width Quiet Close) */}
+      <section className="w-full max-w-[900px] mx-auto px-6 lg:px-12 py-48 min-h-[70vh] flex flex-col justify-center text-center">
+          <span className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-12 block">What this case demonstrates</span>
+          <div className="prose prose-slate max-w-none text-slate-600 text-xl leading-relaxed mb-20 mx-auto font-medium">
+              <p>This project explores how operational complexity can be translated into product structure.</p>
+              <p>The core challenge was not visual polish. It was designing a system that could reduce ambiguity without removing flexibility, support decision-making under pressure, and make coordination visible before the experience breaks.</p>
+              <p className="text-slate-900 font-bold mt-8">It reflects the kind of product problem I am most interested in: systems where behavior, timing, trust, and operational clarity matter as much as interface.</p>
+          </div>
+          <div className="border-t border-slate-200 pt-16">
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Designed to prevent visible failure before it happens.</p>
           </div>
       </section>
 
