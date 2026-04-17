@@ -1,194 +1,64 @@
 import React from 'react';
-import { 
-  ExternalLink, LayoutTemplate, Database, Cpu, ArrowRight, ArrowDown, 
-  Lock, Server, Activity, ShieldCheck, AlertOctagon, Code, Clock, User, Eye 
-} from 'lucide-react';
+import { ExternalLink, LayoutTemplate, Database, Cpu, ArrowRight, ArrowDown, Lock, Server, Activity, ShieldCheck, AlertOctagon, Code, Clock, User, Eye, AlertTriangle } from 'lucide-react';
 
-// Live Components
+// Imports mantidos para serem reutilizados como Living Assets nos próximos sprints
 import Dashboard from './Dashboard';
 import DecisionScreen from './DecisionScreen';
 import ResolutionSummary from './ResolutionSummary';
 import { MOCK_CASES } from '../data/mockData';
 
-// Helper for UI Scaling
-const LivingAsset = ({ children, height = "h-[500px]", scale = "scale-[0.75]" }) => (
-  <div className={`w-full ${height} bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden shadow-inner flex justify-center relative mt-10 mb-8`}>
-     {/* MacOS style fake window bar */}
-     <div className="absolute top-0 left-0 w-full h-8 bg-slate-200 flex items-center px-4 border-b border-slate-300 z-50">
-        <div className="flex space-x-2">
-           <div className="w-2.5 h-2.5 rounded-full bg-slate-400"></div>
-           <div className="w-2.5 h-2.5 rounded-full bg-slate-400"></div>
-           <div className="w-2.5 h-2.5 rounded-full bg-slate-400"></div>
-        </div>
-     </div>
-     {/* The live wrapper */}
-     <div className={`w-[133%] origin-top ${scale} pointer-events-none mt-8`}>
-        {children}
-     </div>
-  </div>
-);
-
-// Native Code Diagram: Data-to-UI Architecture Mapping
-const DataMappingDiagram = () => (
-  <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-8 my-10 shadow-sm flex flex-col md:flex-row items-center justify-between text-sm font-medium">
-     <div className="flex flex-col items-center p-6 bg-white border border-slate-200 rounded-lg shadow-sm w-48 text-center text-slate-700">
-        <Database size={28} className="text-slate-400 mb-3" />
-        <span className="font-bold mb-1">Supplier API</span>
-        <span className="text-xs text-slate-500">JSON Payload</span>
-     </div>
-     <div className="flex-1 flex justify-center text-blue-500 max-md:my-4 md:-mx-4 z-10 hidden md:block text-center border-t-2 border-dashed border-blue-300 w-full relative">
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-bold border border-blue-200">
-           State Contract
-        </div>
-     </div>
-     <ArrowRight className="hidden md:block text-blue-400 mx-2" />
-     <ArrowDown className="md:hidden text-blue-400 my-2" />
-     <div className="flex flex-col items-center p-6 bg-slate-900 border border-slate-800 rounded-lg shadow-md w-48 text-center text-white">
-        <Cpu size={28} className="text-blue-500 mb-3" />
-        <span className="font-bold mb-1">Engine Core</span>
-        <span className="text-xs text-slate-400">React + Vite State</span>
-     </div>
-     <div className="flex-1 flex justify-center text-emerald-500 max-md:my-4 md:-mx-4 z-10 hidden md:block text-center border-t-2 border-dashed border-emerald-300 w-full relative">
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-xs font-bold border border-emerald-200">
-           Props Inject
-        </div>
-     </div>
-     <ArrowRight className="hidden md:block text-emerald-400 mx-2" />
-     <ArrowDown className="md:hidden text-emerald-400 my-2" />
-     <div className="flex flex-col items-center p-6 bg-white border border-emerald-200 rounded-lg shadow-sm w-48 text-center text-slate-700">
-        <LayoutTemplate size={28} className="text-emerald-500 mb-3" />
-        <span className="font-bold mb-1">Silent UI</span>
-        <span className="text-xs text-slate-500">Rendered Components</span>
-     </div>
-  </div>
-);
-
-// Native Code Diagram: Strict Data-to-UI Execution
-const StrictContractDiagram = () => (
-  <div className="w-full bg-slate-900 border border-slate-800 rounded-xl p-8 my-8 shadow-xl flex flex-col md:flex-row items-center justify-between font-mono text-xs">
-    <div className="bg-slate-950 p-6 rounded-lg text-emerald-400 w-full md:w-5/12 border border-slate-800">
-      <span className="text-slate-500">// Payload Injetado</span><br/>
-      <span className="text-blue-400">const</span> casePayload = {'{'}<br/>
-      &nbsp;&nbsp;<span className="text-slate-300">risk_band:</span> <span className="text-amber-300">"critical"</span>,<br/>
-      &nbsp;&nbsp;<span className="text-slate-300">time_to_failure:</span> <span className="text-amber-300">"12m"</span><br/>
-      {'}'};
-    </div>
-    <div className="my-6 md:my-0 flex justify-center">
-      <ArrowRight size={32} className="text-slate-600 md:rotate-0 rotate-90" />
-    </div>
-    <div className="bg-white p-6 rounded-lg shadow-inner border border-slate-200 w-full md:w-5/12 flex flex-col items-center justify-center space-y-4">
-      <div className="text-center w-full">
-         <span className="text-slate-400 uppercase tracking-widest text-[10px] font-bold font-sans block mb-2">Interface Renderizada</span>
-         <div className="inline-flex items-center text-sm font-sans font-bold text-red-800 bg-red-50 px-3 py-1.5 rounded-md border border-red-200 shadow-sm w-full justify-center">
-            <span className="w-2 h-2 rounded-full bg-red-500 mr-2 animate-pulse"></span>
-            Critical Intervention
-         </div>
-      </div>
-      <div className="flex items-center justify-center text-red-600 font-sans font-bold text-sm bg-red-50/50 w-full py-2 rounded border border-red-100">
-         <Clock size={14} className="mr-1.5" /> TTF: 12m
-      </div>
-    </div>
-  </div>
-);
-
-// Native Code Diagram: State Machine Topology
+// Diagrama Nativo: State Machine (S0 -> S6)
 const StateMachineDiagram = () => (
-  <div className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-8 my-10 shadow-xl overflow-hidden relative">
-     <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-        <Activity size={180} />
+  <div className="w-full max-w-4xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl p-8 mb-6 shadow-xl overflow-hidden relative">
+     <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+        <Activity size={240} />
      </div>
-     <h3 className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-8">State Machine Topology</h3>
      
-     <div className="flex flex-col items-center w-full space-y-6">
+     <div className="flex flex-col items-center w-full space-y-6 pt-4">
+        {/* Row 1 */}
         <div className="flex justify-center w-full relative">
-           <div className="bg-slate-800 border-2 border-emerald-500 text-white px-6 py-3 rounded-lg shadow-md w-48 text-center z-10">
-              <span className="block text-emerald-400 font-mono text-xs mb-1">STATE 0</span>
-              <span className="font-bold">Stable (No Noise)</span>
+           <div className="bg-slate-800 border-l-4 border-emerald-500 text-white px-6 py-4 rounded-lg shadow-md w-64 z-10 text-left">
+              <span className="block text-emerald-400 font-mono text-xs mb-1">STATE 0 // STABLE</span>
+              <span className="font-bold">Stable but Not Verified</span>
            </div>
         </div>
         
+        {/* Row 2 */}
         <div className="flex flex-col items-center w-full relative">
            <div className="h-6 w-0.5 bg-slate-700 mb-2"></div>
            <ArrowDown size={16} className="text-slate-600 mb-2" />
-           <div className="bg-slate-800 border-2 border-blue-500 text-white px-6 py-3 rounded-lg shadow-md w-48 text-center z-10">
-              <span className="block text-blue-400 font-mono text-xs mb-1">STATE 2</span>
+           <div className="bg-slate-800 border-l-4 border-blue-500 text-white px-6 py-4 rounded-lg shadow-md w-64 z-10 text-left">
+              <span className="block text-blue-400 font-mono text-xs mb-1">STATE 1 // INTERVENTION</span>
               <span className="font-bold">Decision Required</span>
            </div>
         </div>
 
-        <div className="w-64 h-8 border-t-2 border-x-2 border-slate-700 rounded-t-xl mb-[-4px]"></div>
+        {/* Path Split */}
+        <div className="w-80 h-8 border-t-2 border-x-2 border-slate-700 rounded-t-xl mb-[-4px]"></div>
 
-        <div className="flex justify-between w-full max-w-sm px-4">
+        {/* Row 3 - Branching */}
+        <div className="flex justify-between w-full max-w-md px-4">
            {/* Left Branch */}
            <div className="flex flex-col items-center">
               <ArrowDown size={16} className="text-slate-600 mb-2" />
-              <div className="bg-slate-800 border-2 border-purple-500 text-white px-4 py-3 rounded-lg shadow-md w-40 text-center z-10">
-                 <span className="block text-purple-400 font-mono text-xs mb-1">STATE 4</span>
-                 <span className="font-bold text-sm">Automated Execution</span>
+              <div className="bg-slate-800 border-l-4 border-purple-500 text-white px-5 py-4 rounded-lg shadow-md w-48 z-10 text-left">
+                 <span className="block text-purple-400 font-mono text-xs mb-1">STATE 2 & 3</span>
+                 <span className="font-bold text-sm">Action Constraints & Contingency</span>
               </div>
               <div className="h-6 w-0.5 bg-slate-700 my-2"></div>
               <ArrowDown size={16} className="text-slate-600 mb-2" />
-              <div className="bg-slate-800 border-2 border-emerald-500 text-white px-4 py-3 rounded-lg shadow-md w-40 text-center z-10 flex flex-col items-center">
-                 <ShieldCheck size={16} className="text-emerald-400 mb-1" />
-                 <span className="block text-emerald-400 font-mono text-xs mb-1">STATE 5</span>
-                 <span className="font-bold text-sm">Case Closed</span>
+              <div className="bg-slate-800 border-l-4 border-emerald-500 text-white px-5 py-4 rounded-lg shadow-md w-48 z-10 flex flex-col items-start bg-emerald-900/10">
+                 <span className="block text-emerald-400 font-mono text-xs mb-1 flex items-center"><ShieldCheck size={12} className="mr-1"/> STATE 4</span>
+                 <span className="font-bold text-sm">Resolution Recorded</span>
               </div>
            </div>
 
            {/* Right Branch */}
            <div className="flex flex-col items-center">
               <ArrowDown size={16} className="text-slate-600 mb-2" />
-              <div className="bg-slate-800 border-2 border-amber-600 text-white px-4 py-3 rounded-lg shadow-md w-40 text-center z-10 flex flex-col items-center">
-                 <AlertOctagon size={16} className="text-amber-500 mb-1" />
-                 <span className="block text-amber-500 font-mono text-xs mb-1">STATE 6</span>
-                 <span className="font-bold text-sm">Contingency / Fallback</span>
-              </div>
-           </div>
-        </div>
-     </div>
-  </div>
-);
-
-// Native Code Diagram: Swimlane (Concurrency Lock)
-const SwimlaneDiagram = () => (
-  <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-8 my-10 shadow-sm font-sans relative overflow-hidden">
-     <h3 className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-8">Concurrency State Flow</h3>
-     
-     <div className="flex flex-col space-y-6">
-        {/* Row 1: Operaor A */}
-        <div className="flex flex-col md:flex-row items-start md:items-center w-full">
-           <div className="flex items-center w-48 mb-4 md:mb-0">
-              <div className="bg-slate-200 p-2 rounded-full mr-3 text-slate-500">
-                 <User size={18} />
-              </div>
-              <span className="text-sm font-bold text-slate-700">Operador A (Sarah)</span>
-           </div>
-           
-           <div className="flex-1 w-full bg-white border border-slate-200 p-4 rounded-lg shadow-sm flex items-center justify-between z-10 relative">
-              <div className="text-xs font-bold text-slate-500 mr-4">Ativo</div>
-              <div className="flex-1 flex items-center justify-center border-t-2 border-dashed border-blue-300 mx-2 text-blue-600 text-xs font-bold py-1">Acessa ARR-1050</div>
-              <div className="bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-bold shadow-sm flex items-center">
-                 <Lock size={12} className="mr-1" /> Active Edit Lock
-              </div>
-           </div>
-        </div>
-
-        <div className="w-0.5 h-6 bg-slate-300 absolute left-[calc(140px)] md:left-56 bottom-24 top-24 -z-10 hidden md:block"></div>
-
-        {/* Row 2: Operator B */}
-        <div className="flex flex-col md:flex-row items-start md:items-center w-full pt-4 md:pt-0">
-           <div className="flex items-center w-48 mb-4 md:mb-0">
-              <div className="bg-blue-100 p-2 rounded-full mr-3 text-blue-600 border border-blue-200">
-                 <Eye size={18} />
-              </div>
-              <span className="text-sm font-bold text-slate-900">Operador B (Você)</span>
-           </div>
-           
-           <div className="flex-1 w-full bg-slate-100 border border-slate-200 p-4 rounded-lg flex items-center justify-between z-10 opacity-70">
-              <div className="text-xs font-bold text-slate-500 mr-4">Concorrente</div>
-              <div className="flex-1 flex items-center justify-center border-t-2 border-dashed border-amber-300 mx-2 text-amber-600 text-xs font-bold py-1">Gatilho de Renderização</div>
-              <div className="bg-amber-100 text-amber-800 border border-amber-300 px-3 py-1.5 rounded text-xs font-bold shadow-sm flex items-center">
-                 <ShieldCheck size={12} className="mr-1" /> Rebaixa para Read-Only
+              <div className="bg-slate-800 border-l-4 border-amber-500 text-white px-5 py-4 rounded-lg shadow-md w-48 z-10 flex flex-col items-start bg-amber-900/10">
+                 <span className="block text-amber-500 font-mono text-xs mb-1 flex items-center"><AlertOctagon size={12} className="mr-1"/> STATE 6</span>
+                 <span className="font-bold text-sm">Manual Recovery</span>
               </div>
            </div>
         </div>
@@ -199,192 +69,157 @@ const SwimlaneDiagram = () => (
 
 const CaseStudyPage = ({ onLaunchPrototype }) => {
   return (
-    <div className="bg-[#f8fafc] w-full min-h-screen text-slate-800 font-sans selection:bg-blue-100 pb-24">
-      {/* Decorative Header Background */}
-      <div className="h-96 w-full bg-slate-900 absolute top-0 left-0 -z-10" />
+    <div className="w-full bg-[#f8fafc] text-slate-800 font-sans selection:bg-blue-100 min-h-screen">
       
-      <main className="max-w-[900px] mx-auto px-6 pt-24 relative z-10">
-        
-        {/* Header Section */}
-        <header className="mb-16 text-center">
-          <div className="bg-blue-600/20 text-blue-300 uppercase tracking-widest text-[10px] font-bold px-3 py-1 rounded inline-block mb-6 border border-blue-500/30">
-            UX + Frontend Case Study
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-6 leading-tight drop-shadow-sm">
-            The Arrival Control Engine
-          </h1>
-          <p className="text-lg text-slate-300 font-medium mb-10 max-w-2xl mx-auto leading-relaxed">
-            Como aplicamos o conceito de "Silent UI" e o Design Orientado a Estados para transformar uma interface logística de alta tensão em uma operação isenta de erro humano.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-            <button 
-              onClick={onLaunchPrototype}
-              className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg shadow-lg flex items-center transition-all w-full sm:w-auto justify-center"
-            >
-              <LayoutTemplate size={20} className="mr-2" />
-              Run Full Live App
-            </button>
-            <a 
-              href="https://github.com" 
-              className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-8 rounded-lg flex items-center border border-slate-700 transition-all w-full sm:w-auto justify-center"
-            >
-              <ExternalLink size={20} className="mr-2" />
-              View Deploy Metrics
-            </a>
-          </div>
-        </header>
-
-        {/* Content Wrapper */}
-        <article className="bg-white rounded-2xl shadow-xl border border-slate-200 p-8 md:p-14 space-y-16">
+      {/* PAGE 01 — HERO (Full-width) */}
+      <section className="w-full max-w-[1280px] mx-auto px-6 lg:px-12 py-24 md:py-32 relative">
+          <span className="text-xs font-bold tracking-widest text-blue-600 uppercase mb-8 block md:text-left">Operational Product System</span>
           
-          <section>
-            <h2 className="text-2xl font-bold text-slate-900 mb-4 tracking-tight">1. O Desafio: Entropia de Dados e o "Silent UI"</h2>
-            <div className="prose prose-slate max-w-none text-slate-600 font-medium leading-relaxed">
-              <p className="mb-4">
-                Em manobras logísticas de altíssimo padrão, a abundância de dados gera fadiga fatal. Operadores perdem o controle sistêmico ao dissecar tabelas massivas para caçar anomalias operacionais. O projeto <em>Arrival Control Engine</em> abortou esse modelo nativo e abraçou estritamente o <strong>Silent UI (Gerenciamento por Exceções)</strong>.
-              </p>
-              <p>
-                Se a automação detém o controle sadio das integrações (APIs de Transfer/Hotéis), o sistema se recusa a emitir ruído visual. Ele só faz uso da pirâmide de cores secundárias para alertar e comandar a cognição humana apenas no limite exato de uma ruptura previsível.
-              </p>
-            </div>
-            
-            <DataMappingDiagram />
-          </section>
+          <h1 className="text-5xl md:text-7xl font-extrabold text-slate-900 tracking-tight leading-[1.05] mb-6">
+              The Arrival Control Engine
+          </h1>
+          
+          <h2 className="text-2xl md:text-3xl text-slate-500 font-medium mb-8 max-w-3xl leading-snug">
+              A system designed to prevent arrival failures before they happen.
+          </h2>
+          
+          <p className="text-lg text-slate-600 leading-relaxed max-w-2xl mb-12">
+              Arrival operations rarely fail because no one is working.<br/>
+              They fail because risk becomes visible too late, ownership stays ambiguous, and decisions happen under pressure instead of before it.<br/><br/>
+              This concept translates that operational problem into a structured product system built around state logic, enforced decision points, and visible contingency paths.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row items-start space-y-4 sm:space-y-0 sm:space-x-4 mb-20 md:mb-10">
+              <button className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 px-8 rounded-lg shadow-lg flex items-center transition-all">
+                  Read Full Case
+              </button>
+              <button 
+                onClick={onLaunchPrototype} 
+                className="bg-white hover:bg-slate-50 text-slate-900 font-bold py-4 px-8 rounded-lg flex items-center border border-slate-200 shadow-sm transition-all text-left">
+                  View System Logic
+              </button>
+          </div>
+          
+          <div className="md:absolute bottom-12 right-12 text-sm text-slate-500 max-w-[240px] font-medium border-l-2 border-slate-300 pl-4">
+              Case study developed as a product systems concept at the intersection of operations, service design, and workflow logic.
+          </div>
+      </section>
 
-          <section>
-            <h2 className="text-2xl font-bold text-slate-900 mb-4 tracking-tight">2. A Jornada UX Baseada em Estados (State Machine)</h2>
-            <div className="prose prose-slate max-w-none text-slate-600 font-medium leading-relaxed mb-6">
-              <p>
-                Abandonamos a abordagem centrada em "Telas Visuais". O Layout é estritamente escravo do seu Payload. Este é o princípio de  <em>Contracts Dictating UI</em>. Se o tempo da falha de um transfer se encolhe para um limite perigoso, não é o operador que busca a solução na tela. É o React state que empura a gravidade para cima mudando de S0 para S3.
-              </p>
-            </div>
+      <div className="w-full h-px bg-slate-200"></div>
 
-            {/* Injeção Nova: O Diagrama de Dados pra Componentes Reais */}
-            <StrictContractDiagram />
-
-            <div className="prose prose-slate max-w-none text-slate-600 font-medium leading-relaxed mt-10">
-              <p>Esta disciplina rigorosa nos permitiu orquestrar todo o ecossistema baseando as rotinas na matriz sequencial da State Machine local do motor tático de incidentes operacionais, variando organicamente da passividade tática até o bloqueio emergencial.</p>
-            </div>
-
-            <StateMachineDiagram />
-
-            <div className="space-y-12 mt-12">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 mb-2">S0: The Calm State (Zero Friction)</h3>
-                <p className="text-slate-600 font-medium leading-relaxed bg-slate-50 p-4 border border-slate-100 rounded-lg">Quando os voos operam limpos e no horário, o painel central assume cores neutras com status de esmeralda sólida. A omissão sumária de call-to-actions prova de imediato que nenhuma intervenção manual deve ser feita.</p>
-                <LivingAsset height="h-[300px]">
-                   <Dashboard 
-                      onSelectCase={() => {}} 
-                      onLockWarning={() => {}} 
-                   />
-                </LivingAsset>
+      {/* PAGE 02 — OVERVIEW (60/40 Split) */}
+      <section className="w-full max-w-[1280px] mx-auto px-6 lg:px-12 py-24 flex flex-col md:flex-row gap-16 lg:gap-24">
+          <div className="w-full md:w-[60%]">
+              <h2 className="text-3xl font-extrabold text-slate-900 mb-8 tracking-tight">Overview</h2>
+              <div className="prose prose-slate max-w-none text-slate-600 text-lg leading-relaxed">
+                  <p>The Arrival Control Engine is a product concept built to handle high-risk arrival flows where coordination depends on timing, ownership, and rapid response across multiple teams.</p>
+                  <p>Instead of treating operational issues as isolated incidents, the system models them as structured states. It identifies when a case is still stable, when intervention is required, when fallback logic must be activated, and when resolution should be logged as operational memory.</p>
+                  <p className="font-bold text-slate-900 bg-slate-100 p-6 rounded-xl border border-slate-200 shadow-sm">
+                      The objective is not to track activity more elegantly.<br/>
+                      It is to force the right decision before failure becomes visible.
+                  </p>
               </div>
+          </div>
 
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 mb-2">S2: Decision Required (The Analytical Recommendation)</h3>
-                <p className="text-slate-600 font-medium leading-relaxed bg-slate-50 p-4 border border-slate-100 rounded-lg mb-4">No caso de ruptura de limite seguro, o motor tático não apenas avisa a falha, mas oferece o plano calculado como resposta primária (Rebooking Path). O Design System emprega aqui o "Slow UX": a fricção proposital ao clicar e segurar ("Hold to Confirm") para inibir violações sob sobrecarga de adrenalina.</p>
-                <LivingAsset height="h-[600px]">
-                   <DecisionScreen 
-                      caseData={MOCK_CASES[0]} 
-                      onConfirm={() => {}} 
-                      onBack={() => {}} 
-                   />
-                </LivingAsset>
+          <div className="w-full md:w-[40%] space-y-6">
+              <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                  <span className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-3 block">What this solves</span>
+                  <p className="text-slate-800 font-medium">Fragmented coordination, delayed decisions, unclear ownership, and reactive escalation during arrival operations.</p>
               </div>
-
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 mb-2">S5: Resolution Post-Mortem</h3>
-                <p className="text-slate-600 font-medium leading-relaxed bg-slate-50 p-4 border border-slate-100 rounded-lg">Após o tempo imposto em `S4 - Action in Progress`, a anomalia é devorada matematicamente pela automação. As permissões de gravação fecham-se garantindo a irreversencialidade do ato de salvamento tático logístico. O operador se livra em instantes do nó original.</p>
-                <LivingAsset height="h-[600px]">
-                   <ResolutionSummary 
-                      caseData={MOCK_CASES[0]} 
-                      onBack={() => {}} 
-                   />
-                </LivingAsset>
+              <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                  <span className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-3 block">Core idea</span>
+                  <p className="text-slate-800 font-medium">A state-based operational system that makes risk legible early and prevents silent breakdowns.</p>
               </div>
-            </div>
-          </section>
+              <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                  <span className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-3 block">Designed for</span>
+                  <p className="text-slate-800 font-medium">Complex service environments where timing, handoffs, and contingency planning directly affect the experience.</p>
+              </div>
+              <p className="text-sm text-slate-500 font-medium italic mt-6 px-2">This case focuses on system behavior before visible service failure occurs.</p>
+          </div>
+      </section>
 
-          <section>
-            <h2 className="text-2xl font-bold text-slate-900 mb-4 tracking-tight">3. Concorrência e Fallback (Lock State)</h2>
-            <div className="prose prose-slate max-w-none text-slate-600 font-medium leading-relaxed mb-8">
-              <p>Operações simultâneas exigem mais do que telas bonitas; exigem topologia defensiva contra colisões. Construímos o modelo "Read-only Barrier": se um Operador assume o payload do painel, a camada vizinha converte o mesmo nó em um layout visual inoperante.</p>
-            </div>
-            
-            <SwimlaneDiagram />
+      <div className="w-full h-px bg-slate-200"></div>
 
-            <div className="prose prose-slate max-w-none text-slate-600 font-medium leading-relaxed mt-6 mb-4">
-               <p>Abaixo está o componente operando nativamente essa limitação visual em caso bloqueado (Ver a linha David Kim):</p>
-            </div>
+      {/* PAGE 03 — PROBLEM (62/38 Split) */}
+      <section className="w-full max-w-[1280px] mx-auto px-6 lg:px-12 py-24 flex flex-col md:flex-row gap-16 lg:gap-24">
+          <div className="w-full md:w-[62%]">
+              <h2 className="text-3xl font-extrabold text-slate-900 mb-8 tracking-tight">Defining the Problem</h2>
+              <div className="prose prose-slate max-w-none text-slate-600 text-lg leading-relaxed mb-12">
+                  <p>Arrival failures often begin long before anything visibly breaks.</p>
+                  <p>A transfer has not been confirmed. An arrival time is unclear. One team assumes another team is handling it. A contingency exists, but no one has formally selected it.</p>
+                  <p className="text-slate-900 font-bold bg-blue-50 border-l-4 border-blue-600 p-6 rounded-r-xl shadow-sm">
+                      The issue is not lack of effort.<br/>The issue is lack of structure.
+                  </p>
+                  <p>Without a control layer, risk stays distributed across people, channels, and assumptions until the operation is already in reactive mode.</p>
+              </div>
+              
+              <blockquote className="border-l-4 border-slate-900 pl-8 my-10">
+                  <p className="text-2xl md:text-3xl font-bold text-slate-900 leading-snug">
+                      "Operational failure usually begins before anyone can point to a single visible mistake."
+                  </p>
+              </blockquote>
+          </div>
 
-            <LivingAsset height="h-[250px]" scale="scale-100 mt-2">
-                 {/* Exibindo especificamente a linha com Lock do Dashboard */}
-                 <div className="w-full max-w-[1200px] mx-auto p-4 bg-amber-50 border-l-4 border-amber-500 border-y-amber-200 border-r-amber-200 rounded-xl shadow-sm flex items-center mb-6">
-                    <Lock size={20} className="text-amber-600 mr-3" />
-                    <div>
-                      <h2 className="text-sm font-bold text-amber-900">Read-Only Mode Active</h2>
-                      <p className="text-xs text-amber-700 font-medium">This case is actively locked by Sarah J. Request takeover if necessary.</p>
-                    </div>
+          <div className="w-full md:w-[38%]">
+              <div className="bg-slate-900 p-10 rounded-3xl shadow-xl text-white relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-slate-800 rounded-bl-full -z-0 opacity-50"></div>
+                  <h3 className="text-xl font-bold mb-4 relative z-10">Where arrival failures begin</h3>
+                  <p className="text-slate-300 font-medium mb-10 leading-relaxed relative z-10">
+                      Not with a single major error, but with small signals that remain disconnected for too long.
+                  </p>
+                  <ul className="space-y-6 relative z-10">
+                      <li className="flex items-center text-slate-200 font-medium">
+                          <AlertTriangle size={20} className="text-amber-400 mr-4 flex-shrink-0"/> Missing confirmation
+                      </li>
+                      <li className="flex items-center text-slate-200 font-medium">
+                          <AlertTriangle size={20} className="text-amber-400 mr-4 flex-shrink-0"/> Ambiguous ownership
+                      </li>
+                      <li className="flex items-center text-slate-200 font-medium">
+                          <AlertTriangle size={20} className="text-amber-400 mr-4 flex-shrink-0"/> Delayed decision
+                      </li>
+                      <li className="flex items-center text-slate-200 font-medium">
+                          <AlertTriangle size={20} className="text-amber-400 mr-4 flex-shrink-0"/> No active fallback
+                      </li>
+                  </ul>
+              </div>
+              <p className="text-sm text-slate-500 font-medium mt-6 italic px-2">In high-pressure service systems, late clarity behaves like failure.</p>
+          </div>
+      </section>
+
+      <div className="w-full h-px bg-slate-200"></div>
+
+      {/* PAGE 04 — SYSTEM LOGIC (Full width) */}
+      <section className="w-full bg-slate-50 py-24 border-b border-slate-200">
+          <div className="max-w-[1280px] mx-auto px-6 lg:px-12">
+              <div className="max-w-3xl mb-16">
+                  <h2 className="text-3xl font-extrabold text-slate-900 mb-8 tracking-tight">A State-Based System</h2>
+                  <div className="prose prose-slate max-w-none text-slate-600 text-lg leading-relaxed">
+                      <p>To make the operation reliable, the flow was modeled as a state machine.</p>
+                      <p>That decision shifts the system from passive tracking to active control. Instead of simply displaying progress, it defines what the case currently is, what must happen next, and when progression should stop until a decision is made.</p>
+                      <p className="font-bold text-slate-900 border-b-2 border-slate-300 pb-2 inline-block">
+                          The value of the system is not in showing motion. It is in structuring response.
+                      </p>
                   </div>
-                 <div className="w-full max-w-[1200px] mx-auto p-4 flex items-center justify-between bg-slate-50 opacity-80 shadow-sm border border-slate-200 border-l-4 border-l-amber-400 rounded-xl pointer-events-none">
-                    <div className="w-2/12"><span className="text-sm font-bold text-slate-900 block">David Kim</span><span className="text-[11px] text-slate-500 font-mono">ARR-1050</span></div>
-                    <div className="w-3/12"><span className="text-xs font-bold text-blue-800">● Decision Required</span></div>
-                    <div className="w-2/12 text-sm text-amber-700 font-bold flex"><Lock size={14} className="mr-1 mt-0.5"/> Locked (Sarah J.)</div>
-                    <div className="w-2/12 text-right"><span className="px-4 py-2 text-xs font-bold text-amber-700 bg-white border border-amber-200 rounded-lg">Request</span></div>
-                 </div>
-            </LivingAsset>
-          </section>
+              </div>
 
-          <section>
-             <h2 className="text-2xl font-bold text-slate-900 mb-4 tracking-tight">4. A Engenharia do Design (Tech Stack)</h2>
-             <div className="prose prose-slate max-w-none text-slate-600 font-medium leading-relaxed bg-slate-900 text-white p-8 rounded-2xl border border-slate-800 shadow-xl">
-               <p className="text-slate-300 mb-6">
-                  Design Systems verdadeiramente escaláveis repudiam a entrega passiva de Figmas paralisados. Este projeto é uma engrenagem inteiramente codificada e auto-hospedável:
-               </p>
-               <ul className="space-y-4 list-none p-0 m-0">
-                  <li className="flex items-start">
-                     <Code className="text-blue-400 mr-3 mt-1 flex-shrink-0" size={20} />
-                     <div>
-                        <strong className="text-blue-300 font-bold block mb-1">React + Vite (Componentização Isolada)</strong>
-                        <span className="text-sm text-slate-400">Implementação bruta de governança de estados locais (`App.jsx`) garantindo trocas zero-latency usando a engine ultra veloz do Vite. Nenhum recarregamento de layout interrompe a experiência.</span>
-                     </div>
-                  </li>
-                  <li className="flex items-start">
-                     <LayoutTemplate className="text-emerald-400 mr-3 mt-1 flex-shrink-0" size={20} />
-                     <div>
-                        <strong className="text-emerald-300 font-bold block mb-1">Tailwind CSS + Lucide Icons</strong>
-                        <span className="text-sm text-slate-400">Rigor estético absoluto com utilitários. Não há variação randômica de paddings: uma grid semântica sólida embasa calmaria cognitiva em todas as renderizações de "Living Assets".</span>
-                     </div>
-                  </li>
-                  <li className="flex items-start">
-                     <Server className="text-indigo-400 mr-3 mt-1 flex-shrink-0" size={20} />
-                     <div>
-                        <strong className="text-indigo-300 font-bold block mb-1">Integração de DevOps (CI/CD Automático)</strong>
-                        <span className="text-sm text-slate-400">Todo git commit em `main` abastece ativamente o pipe que acorda os servidores Vercel, montando pipelines robustos que servem atualizações automáticas via edge-network instantaneamente.</span>
-                     </div>
-                  </li>
-               </ul>
-             </div>
-          </section>
+              <div className="w-full bg-white border border-slate-200 rounded-3xl p-12 mb-8 relative shadow-sm">
+                  <h3 className="text-slate-500 font-bold uppercase tracking-widest text-center mb-4 text-xs">Operational State Model</h3>
+                  <p className="text-center text-slate-600 font-medium mb-12 max-w-xl mx-auto">
+                      Each state defines what the system knows, what action is required, and whether the flow can safely continue.
+                  </p>
 
-          <section className="bg-slate-50 border border-slate-200 p-8 rounded-2xl">
-            <h2 className="text-xl font-bold text-slate-900 mb-4 tracking-tight">5. Conclusão e Impacto (The So What)</h2>
-            <div className="prose prose-slate max-w-none text-slate-700 font-medium leading-relaxed">
-              <p>
-                O sucesso do Arrival Control Engine reside em mudar o eixo focal da plataforma: transformamos brutalmente um "quadro estático de leitura logística" em um <strong>Motor de Resolução Guiado.</strong>
-              </p>
-              <p>
-                Ao apagar a estática sistêmica no instante zero (garantindo os preceitos do S0) e orquestrar decisões vitais que blindam o operador mediante interações cinéticas contra cliques acidentais e arquitetura multi-player defensiva livre de colisões, redefinimos inteiramente o modelo de alta-tensão em operações ultra-premium. O impacto não é sobre aglomerar informações, é pura predição e mitigação tátil do esforço manual humano.
-              </p>
-            </div>
-          </section>
+                  <StateMachineDiagram />
 
-        </article>
+                  {/* Clarification Tooltip anchored visually to Diagram area */}
+                  <div className="absolute top-12 right-12 text-sm text-slate-500 font-medium max-w-[200px] bg-slate-50 border border-slate-200 p-5 rounded-xl shadow-sm hidden lg:block">
+                      The interface is not the system.<br/><span className="text-slate-900 font-bold">The state logic is the system.</span>
+                  </div>
+              </div>
 
-        <footer className="py-12 text-center text-sm font-semibold text-slate-400">
-          Case Study desenvolvido e documentado de ponta-a-ponta via Engrenagem Autônoma de Design de Produto.
-        </footer>
-      </main>
+              <p className="text-center text-slate-500 text-sm font-medium">State logic was used to turn vague operational handling into explicit, enforceable behavior.</p>
+          </div>
+      </section>
+
     </div>
   );
 };
