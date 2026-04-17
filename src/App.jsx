@@ -3,10 +3,11 @@ import Dashboard from './views/Dashboard';
 import DecisionScreen from './views/DecisionScreen';
 import ActionProgress from './views/ActionProgress';
 import ResolutionSummary from './views/ResolutionSummary';
+import CaseStudyPage from './views/CaseStudyPage';
 import { Lock } from 'lucide-react';
 
 function App() {
-  const [currentScreen, setCurrentScreen] = useState('dashboard');
+  const [currentScreen, setCurrentScreen] = useState('case_study');
   const [selectedCase, setSelectedCase] = useState(null);
   const [readOnlyWarning, setReadOnlyWarning] = useState(null);
 
@@ -33,6 +34,10 @@ function App() {
     setSelectedCase(null);
     setReadOnlyWarning(null);
   };
+
+  if (currentScreen === 'case_study') {
+    return <CaseStudyPage onLaunchPrototype={() => setCurrentScreen('dashboard')} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-16 flex flex-col">
