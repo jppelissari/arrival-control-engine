@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>Arrival Control Engine — Interactive Prototype</title>
+<meta name="description" content="Operational control system for managing high-risk arrival scenarios. Demonstrates decision-making under pressure, system constraints, and human-in-the-loop AI.">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0C0E14;--s1:#12151F;--s2:#181C29;--s3:#1E2235;--s4:#232840;
+  --bd1:#1A1E2E;--bd2:#252C42;--bd3:#323A58;
+  --t1:#E4E7F2;--t2:#8B93B0;--t3:#4E566E;
+  --crit:#EF4444;--crit-bg:#200B0B;--crit-bd:#5C1515;--crit-t:#FCA5A5;
+  --risk:#F59E0B;--risk-bg:#201408;--risk-bd:#6B3A0A;--risk-t:#FCD34D;
+  --ok:#22C55E;--ok-bg:#071A0F;--ok-bd:#0F4422;--ok-t:#86EFAC;
+  --blue:#3B82F6;--blue-bg:#091628;--blue-bd:#1A3D6E;--blue-t:#93C5FD;
+  --cyan:#06B6D4;--cyan-bg:#051C26;--cyan-bd:#0C4F64;--cyan-t:#67E8F9;
+  --purple:#A855F7;--purple-bg:#150F22;--purple-bd:#4C1D8A;--purple-t:#D8B4FE;
+  --ai:#6366F1;--ai-bg:#0A0C20;--ai-bd:#1E2060;--ai-t:#A5B4FC;
+  --fn:'Space Grotesk',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
+}
+body{font-family:var(--fn);background:var(--bg);color:var(--t1);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden;height:100vh;width:100vw}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bd3);border-radius:2px}
+.mono{font-family:var(--mono)}
+button{cursor:pointer;font-family:var(--fn)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes flash{0%,100%{border-color:var(--crit-bd)}50%{border-color:var(--crit)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.fade{animation:fadeUp .22s ease both}
+.fade-delayed{animation:fadeUp .25s ease both;animation-delay:.12s;opacity:0;animation-fill-mode:both}
+.slide-down{animation:slideDown .2s ease both}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback} = React;
+
+// ── INITIAL DATA ──────────────────────────────────────────────────────────────
+
+const INIT_CASES = [
+  { id:'LF-001', client:'Luciana Ferretti', flight:'BA 447', arrival:'17:40', airport:'LHR T5',
+    hotel:'The Connaught', state:'decision', riskBand:'high', ttf:22, owner:'M. Okafor',
+    locked:false, lockHolder:null, commStatus:'pending',
+    whatChanged:'Flight BA 447 delayed 83 minutes. Current ETA: 18:58.',
+    whyMatters:'Transfer window is now 12 minutes — below the 25-minute minimum. Hotel check-in window may be missed.',
+    deps:['Transfer','Hotel check-in','Client communication'],
+    rec:{ title:'Rebook private transfer to 19:15 pickup',
+          rationale:'Driver confirmed available for 19:15. Hotel notified of late arrival. Transfer window extends to 31 minutes — above minimum threshold.',
+          confidence:'high', outcome:'Client arrives at The Connaught by 20:10. All dependencies realigned.',
+          cost:'+£0 — rebooking within agreement', expiresIn:18 },
+    alts:[
+      { title:'Arrange backup via second supplier', tradeOff:'Confirmed available, but 12-min longer journey. Arrival ~20:22.', cost:'+£85', risk:'Low', expiresIn:14 },
+      { title:'Hold hotel check-in, notify client to wait', tradeOff:'No rebooking required, but client waits at LHR. High experience risk.', cost:'£0', risk:'High', expiresIn:40 }
+    ],
+    execSteps:[
+      {label:'Transfer rebooking confirmed with supplier',status:'pending'},
+      {label:'Hotel notified of revised arrival time',status:'pending'},
+      {label:'Client communication sent',status:'pending'},
+      {label:'Driver confirmation received',status:'pending'},
+    ]
+  },
+  { id:'MW-002', client:'Marcus Webb', flight:'LH 3204', arrival:'16:55', airport:'FRA T1',
+    hotel:'Steigenberger Frankfurter Hof', state:'critical', riskBand:'critical', ttf:8,
+    owner:'S. Brennan', locked:false, lockHolder:null, commStatus:'required',
+    whatChanged:'Primary transfer supplier canceled. No backup on record.',
+    whyMatters:'Client has a dinner reservation at 19:30. No transfer means missed reservation and stranded arrival.',
+    deps:['Transfer','Dinner reservation','Client communication'],
+    rec:null, alts:[], execSteps:[]
+  },
+  { id:'NK-005', client:'Nadia Kuznetsova', flight:'SU 261', arrival:'21:15', airport:'SVO T-D',
+    hotel:'Four Seasons Moscow', state:'risk', riskBand:'medium', ttf:47,
+    owner:'S. Brennan', locked:true, lockHolder:'S. Brennan', commStatus:'not-required',
+    whatChanged:'Ground handling delay at SVO. ETA may shift by up to 30 minutes.',
+    whyMatters:'Transfer is on a 30-minute tolerance. A further delay compresses the window.',
+    deps:['Transfer'], rec:null, alts:[], execSteps:[]
+  },
+  { id:'JT-004', client:'James Thornton', flight:'AF 1234', arrival:'15:10', airport:'CDG T2',
+    hotel:'Le Bristol Paris', state:'progress', riskBand:'medium', ttf:35,
+    owner:'M. Okafor', locked:false, lockHolder:null, commStatus:'sent',
+    whatChanged:'Transfer delayed due to traffic. Rebooking underway.', whyMatters:'Hotel check-in window tight.', deps:['Transfer'],
+    rec:null, alts:[],
+    execSteps:[
+      {label:'Transfer rebooking confirmed with supplier',status:'complete'},
+      {label:'Hotel notified of revised arrival time',status:'complete'},
+      {label:'Client communication sent',status:'complete'},
+      {label:'Driver confirmation received',status:'pending'},
+    ]
+  },
+  { id:'CM-006', client:'Celine Morel', flight:'AF 7765', arrival:'13:40', airport:'ORY T4',
+    hotel:'Hôtel de Crillon', state:'partial', riskBand:'medium', ttf:null,
+    owner:'M. Okafor', locked:false, lockHolder:null, commStatus:'pending',
+    whatChanged:'Transfer rebooked successfully. Hotel notification still pending.',
+    whyMatters:'Client communication not yet sent. Case cannot be fully closed.', deps:['Client communication'],
+    rec:null, alts:[], execSteps:[]
+  },
+  { id:'AO-003', client:'Amara Osei', flight:'EK 007', arrival:'19:20', airport:'DXB T3',
+    hotel:'Atlantis The Palm', state:'stable', riskBand:'low', ttf:null,
+    owner:'M. Okafor', locked:false, lockHolder:null, commStatus:'not-required',
+    whatChanged:null, whyMatters:null, deps:[], rec:null, alts:[], execSteps:[]
+  }
+];
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+
+const STATE_META = {
+  stable:   {label:'Stable Plan',          cls:'ok'},
+  risk:     {label:'Risk Detected',         cls:'risk'},
+  decision: {label:'Decision Required',     cls:'risk'},
+  critical: {label:'Critical Intervention', cls:'crit'},
+  progress: {label:'Action In Progress',    cls:'blue'},
+  partial:  {label:'Partially Resolved',    cls:'cyan'},
+  resolved: {label:'Resolved',              cls:'ok'},
+  recovery: {label:'Recovery Required',     cls:'purple'},
+  escalated:{label:'Escalated',             cls:'purple'},
+};
+
+const CONF_META = [
+  null,
+  {label:'Unstable', color:'#F59E0B', msg:'Recommendations may shift as new data arrives. Review rationale before committing.'},
+  {label:'Unstable', color:'#EF4444', msg:'Conditions are changing rapidly. Manual override path is now recommended.'},
+  {label:'Critical', color:'#EF4444', msg:'System confidence is too low to support a reliable recommendation.'},
+];
+
+function Badge({state}) {
+  const m = STATE_META[state] || {label:state, cls:'blue'};
+  const colors = {
+    ok:    {bg:'var(--ok-bg)',    bd:'var(--ok-bd)',    c:'var(--ok-t)'},
+    risk:  {bg:'var(--risk-bg)', bd:'var(--risk-bd)',   c:'var(--risk-t)'},
+    crit:  {bg:'var(--crit-bg)', bd:'var(--crit-bd)',   c:'var(--crit-t)'},
+    blue:  {bg:'var(--blue-bg)', bd:'var(--blue-bd)',   c:'var(--blue-t)'},
+    cyan:  {bg:'var(--cyan-bg)', bd:'var(--cyan-bd)',   c:'var(--cyan-t)'},
+    purple:{bg:'var(--purple-bg)',bd:'var(--purple-bd)',c:'var(--purple-t)'},
+  };
+  const {bg,bd,c} = colors[m.cls] || colors.blue;
+  return <span style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:4,fontSize:11,fontWeight:700,letterSpacing:'0.05em',textTransform:'uppercase',background:bg,border:`1px solid ${bd}`,color:c,whiteSpace:'nowrap'}}>{m.label}</span>;
+}
+
+function Btn({children,variant='ghost',size='md',onClick,disabled,style={}}) {
+  const base = {display:'inline-flex',alignItems:'center',gap:6,fontFamily:'var(--fn)',fontWeight:600,cursor:disabled?'not-allowed':'pointer',border:'none',borderRadius:4,transition:'all .14s',opacity:disabled?.4:1,letterSpacing:'0.01em'};
+  const sz = size==='sm'?{padding:'5px 10px',fontSize:12}:size==='lg'?{padding:'11px 22px',fontSize:14}:{padding:'8px 16px',fontSize:13};
+  const vars = {
+    primary:{background:'var(--blue)',color:'#fff'},
+    critical:{background:'var(--crit)',color:'#fff'},
+    ghost:{background:'transparent',color:'var(--t2)',border:'1px solid var(--bd2)'},
+    ai:{background:'var(--ai)',color:'#fff'},
+    danger:{background:'transparent',color:'var(--crit)',border:'1px solid var(--crit-bd)'},
+  };
+  return <button disabled={disabled} onClick={onClick} style={{...base,...sz,...vars[variant],...style}}>{children}</button>;
+}
+
+function Dot({color}) {
+  return <span style={{display:'inline-block',width:7,height:7,borderRadius:'50%',background:color,flexShrink:0}}/>;
+}
+
+function addLog(setLog, type, msg) {
+  const ts = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  setLog(l => [{ts, type, msg, id:Date.now()}, ...l]);
+}
+
+// ── TOPBAR ─────────────────────────────────────────────────────────────────────
+
+function TopBar({view, activeCase, onBack, onSimEsc, onAdvTime, onDestab, confStage, logOpen, setLogOpen}) {
+  return (
+    <div style={{height:52,background:'var(--s1)',borderBottom:'1px solid var(--bd1)',display:'flex',alignItems:'center',padding:'0 20px',gap:16,flexShrink:0,zIndex:100}}>
+      {/* Logo — hide subtitle when inside a case to save space */}
+      <div style={{display:'flex',alignItems:'center',gap:7,flexShrink:0}}>
+        <div style={{width:26,height:26,borderRadius:5,background:'var(--blue)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,flexShrink:0}}>A</div>
+        <span style={{fontWeight:700,fontSize:13,letterSpacing:'0.05em',color:'var(--t1)',whiteSpace:'nowrap'}}>ACE</span>
+        {view==='queue' && <>
+          <span style={{color:'var(--bd2)',fontSize:12}}>·</span>
+          <span style={{color:'var(--t3)',fontSize:11,fontFamily:'var(--mono)',whiteSpace:'nowrap'}}>Arrival Control Engine</span>
+        </>}
+      </div>
+
+      {/* Persistent return + case context */}
+      {view !== 'queue' && activeCase && (
+        <div style={{display:'flex',alignItems:'center',gap:8,flex:1,overflow:'hidden',minWidth:0}}>
+          <button onClick={onBack}
+            style={{background:'none',border:'1px solid var(--bd2)',borderRadius:4,color:'var(--t3)',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',gap:4,padding:'4px 9px',flexShrink:0,fontFamily:'var(--fn)',fontWeight:500,whiteSpace:'nowrap'}}>
+            ← Queue
+          </button>
+          <span style={{color:'var(--bd2)',flexShrink:0}}>·</span>
+          <span style={{fontSize:13,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:160}}>{activeCase.client}</span>
+          <span style={{color:'var(--t3)',fontFamily:'var(--mono)',fontSize:11,flexShrink:0,whiteSpace:'nowrap'}}>{activeCase.id}</span>
+          <div style={{flexShrink:0}}><Badge state={activeCase.state}/></div>
+          {activeCase.ttf != null && (
+            <span style={{color:activeCase.ttf<15?'var(--crit-t)':'var(--risk-t)',fontFamily:'var(--mono)',fontSize:12,flexShrink:0,whiteSpace:'nowrap'}}>
+              {activeCase.ttf}m
+            </span>
+          )}
+        </div>
+      )}
+
+      <div style={{flex:1}}/>
+
+      {/* Simulation Controls */}
+      <div style={{display:'flex',alignItems:'center',gap:6}}>
+        <span style={{fontSize:11,color:'var(--t3)',marginRight:4,textTransform:'uppercase',letterSpacing:'0.08em'}}>Simulate</span>
+        <Btn size='sm' variant='ghost' onClick={onSimEsc} style={{fontSize:11}}>↑ Escalation</Btn>
+        <Btn size='sm' variant='ghost' onClick={onAdvTime} style={{fontSize:11}}>⏱ Advance Time</Btn>
+        <Btn size='sm' variant={confStage>0?'danger':'ghost'} onClick={onDestab} style={{fontSize:11}}>
+          {confStage===0?'⚡ Destabilize':confStage===1?'⚡ Stage 1→2':confStage===2?'⚡ Stage 2→3':'✕ Reset Confidence'}
+        </Btn>
+      </div>
+
+      <button onClick={()=>setLogOpen(o=>!o)} style={{marginLeft:8,background:logOpen?'var(--blue-bg)':'none',border:`1px solid ${logOpen?'var(--blue-bd)':'var(--bd2)'}`,color:logOpen?'var(--blue-t)':'var(--t2)',borderRadius:4,padding:'5px 10px',fontSize:11,fontWeight:600,cursor:'pointer',letterSpacing:'0.05em'}}>
+        LOG
+      </button>
+    </div>
+  );
+}
+
+// ── QUEUE VIEW ─────────────────────────────────────────────────────────────────
+
+function QueueView({cases, onOpen}) {
+  const stats = {
+    critical: cases.filter(c=>c.state==='critical').length,
+    decision: cases.filter(c=>c.state==='decision').length,
+    progress: cases.filter(c=>c.state==='progress'||c.state==='partial').length,
+    stable:   cases.filter(c=>c.state==='stable').length,
+  };
+  const sorted = [...cases].sort((a,b)=>{
+    const order = {critical:0,decision:1,risk:2,progress:3,partial:4,stable:5,resolved:6};
+    return (order[a.state]??9)-(order[b.state]??9);
+  });
+
+  return (
+    <div className="fade" style={{flex:1,overflow:'auto',padding:'24px 32px'}}>
+      <div style={{maxWidth:900,margin:'0 auto'}}>
+        <div style={{marginBottom:24}}>
+          <div style={{display:'flex',alignItems:'baseline',gap:12,marginBottom:4}}>
+            <h1 style={{fontSize:20,fontWeight:700}}>Today's Arrival Queue</h1>
+            <span style={{color:'var(--t3)',fontFamily:'var(--mono)',fontSize:12,whiteSpace:'nowrap'}}>Apr 20 2026</span>
+          </div>
+          <p style={{color:'var(--t2)',fontSize:13}}>Prioritized by failure risk. Click any case to open.</p>
+        </div>
+
+        {/* Stats strip */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:20}}>
+          {[['Critical',stats.critical,'var(--crit)'],['Decision Required',stats.decision,'var(--risk)'],['In Progress',stats.progress,'var(--blue)'],['Stable',stats.stable,'var(--ok)']].map(([label,count,color])=>(
+            <div key={label} style={{background:'var(--s1)',border:'1px solid var(--bd1)',borderRadius:8,padding:'12px 16px'}}>
+              <div style={{fontSize:22,fontWeight:700,color,fontFamily:'var(--mono)'}}>{count}</div>
+              <div style={{fontSize:11,color:'var(--t3)',marginTop:2,textTransform:'uppercase',letterSpacing:'0.06em'}}>{label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Case rows */}
+        <div style={{display:'flex',flexDirection:'column',gap:4}}>
+          {sorted.map((c,i)=>(
+            <CaseRow key={c.id} c={c} idx={i} onOpen={()=>onOpen(c)}/>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CaseRow({c, onOpen}) {
+  const [hov, setHov] = useState(false);
+  const isCrit = c.state==='critical';
+  return (
+    <div onClick={onOpen} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
+      style={{background:hov?'var(--s2)':'var(--s1)',border:`1px solid ${isCrit?'var(--crit-bd)':'var(--bd1)'}`,borderRadius:8,padding:'14px 20px',cursor:'pointer',transition:'all .14s',display:'grid',gridTemplateColumns:'minmax(0,1fr) auto auto auto auto',alignItems:'center',gap:16,animation:isCrit?'flash 2s infinite':undefined}}>
+      <div>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
+          <span style={{fontWeight:600,fontSize:14,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{c.client}</span>
+          {c.locked && <span style={{fontSize:10,color:'var(--t3)',background:'var(--bd1)',borderRadius:3,padding:'1px 5px',fontFamily:'var(--mono)'}}>LOCKED · {c.lockHolder}</span>}
+        </div>
+        <div style={{color:'var(--t3)',fontSize:12,display:'flex',gap:8,fontFamily:'var(--mono)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+          <span>{c.flight}</span><span>·</span><span>{c.airport}</span><span>·</span><span>{c.hotel}</span>
+        </div>
+      </div>
+      <Badge state={c.state}/>
+      <div style={{textAlign:'right',minWidth:80}}>
+        {c.ttf ? <span style={{fontFamily:'var(--mono)',fontSize:13,fontWeight:600,color:c.ttf<15?'var(--crit)':c.ttf<30?'var(--risk)':'var(--t2)'}}>{c.ttf}m</span>
+               : <span style={{color:'var(--t3)',fontSize:12}}>—</span>}
+        <div style={{fontSize:10,color:'var(--t3)',marginTop:1}}>to failure</div>
+      </div>
+      <div style={{textAlign:'right',minWidth:90}}>
+        <div style={{fontSize:12,color:'var(--t2)'}}>{c.owner}</div>
+        {c.commStatus==='pending' && <div style={{fontSize:10,color:'var(--risk-t)',marginTop:1}}>Comm pending</div>}
+        {c.commStatus==='required' && <div style={{fontSize:10,color:'var(--crit-t)',marginTop:1}}>Comm required</div>}
+      </div>
+      <div style={{color:'var(--t3)',fontSize:12}}>→</div>
+    </div>
+  );
+}
+
+// ── AI BLOCK ───────────────────────────────────────────────────────────────────
+
+function AIBlock({rec, confStage, removed}) {
+  if(removed) return (
+    <div style={{background:'var(--s2)',border:'1px solid var(--bd2)',borderRadius:8,padding:20}}>
+      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+        <span style={{fontSize:12,fontWeight:700,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Recommendation</span>
+      </div>
+      <div style={{color:'var(--crit-t)',fontSize:14,fontWeight:600,marginBottom:6}}>No safe recommendation is available.</div>
+      <div style={{color:'var(--t2)',fontSize:13,lineHeight:1.6}}>The guided path cannot be supported. Conditions have changed beyond the system's decision model. Manual recovery or escalation is required.</div>
+    </div>
+  );
+
+  const confColor = confStage===0?'var(--ok-t)':confStage===1?'var(--risk-t)':'var(--crit-t)';
+  const confLabel = confStage===0?'High':'Unstable';
+  const dimmed = confStage >= 2;
+
+  return (
+    <div style={{background:dimmed?'var(--s1)':'var(--ai-bg)',border:`1px solid ${dimmed?'var(--bd1)':'var(--ai-bd)'}`,borderRadius:8,padding:20,transition:'all .4s',opacity:dimmed?.8:1}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <div style={{background:'var(--ai)',width:20,height:20,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:'#fff'}}>AI</div>
+          <span style={{fontSize:11,fontWeight:700,color:'var(--ai-t)',textTransform:'uppercase',letterSpacing:'0.1em'}}>Recommendation · AI drafted this</span>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:6}}>
+          <Dot color={confColor}/>
+          <span style={{fontSize:11,fontFamily:'var(--mono)',color:confColor,fontWeight:600}}>Confidence: {confLabel}</span>
+        </div>
+      </div>
+
+      {confStage>0 && (
+        <div style={{background:'var(--risk-bg)',border:'1px solid var(--risk-bd)',borderRadius:4,padding:'8px 12px',marginBottom:14,fontSize:12,color:'var(--risk-t)'}}>
+          {CONF_META[confStage].msg}
+        </div>
+      )}
+
+      <div style={{fontSize:15,fontWeight:600,marginBottom:8,color:dimmed?'var(--t2)':'var(--t1)'}}>{rec.title}</div>
+      <div style={{fontSize:13,color:'var(--t2)',lineHeight:1.65,marginBottom:14}}>{rec.rationale}</div>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,fontSize:12}}>
+        <div style={{background:'var(--s2)',borderRadius:4,padding:'10px 12px'}}>
+          <div style={{color:'var(--t3)',marginBottom:3,textTransform:'uppercase',fontSize:10,letterSpacing:'0.08em'}}>Expected outcome</div>
+          <div style={{color:'var(--t1)'}}>{rec.outcome}</div>
+        </div>
+        <div style={{background:'var(--s2)',borderRadius:4,padding:'10px 12px'}}>
+          <div style={{color:'var(--t3)',marginBottom:3,textTransform:'uppercase',fontSize:10,letterSpacing:'0.08em'}}>Cost impact</div>
+          <div style={{color:'var(--t1)'}}>{rec.cost}</div>
+        </div>
+      </div>
+
+      <div style={{marginTop:10,display:'flex',alignItems:'center',gap:6,fontSize:12,color:'var(--t3)'}}>
+        <span>Option expires in</span>
+        <span style={{fontFamily:'var(--mono)',color:'var(--risk-t)',fontWeight:600}}>{rec.expiresIn}m</span>
+      </div>
+    </div>
+  );
+}
+
+// ── SITUATION SCREEN ───────────────────────────────────────────────────────────
+
+function SituationScreen({c, onProceed}) {
+  return (
+    <div className="fade" style={{padding:'28px 32px',maxWidth:760}}>
+      <div style={{marginBottom:6,fontSize:11,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.1em'}}>Situation Summary</div>
+      <h2 style={{fontSize:20,fontWeight:700,marginBottom:4}}>A change was detected in this arrival plan.</h2>
+      <p style={{color:'var(--t2)',fontSize:13,marginBottom:28}}>{c.state==='critical'?'Immediate action is required. The window is critically short.':'Review the updated situation before taking action.'}</p>
+
+      <div style={{display:'flex',flexDirection:'column',gap:12,marginBottom:28}}>
+        {[['What Changed', c.whatChanged,'var(--t1)'],['Why It Matters', c.whyMatters,c.state==='critical'?'var(--crit-t)':'var(--risk-t)']].map(([label,val,color])=>(
+          <div key={label} style={{background:'var(--s1)',border:'1px solid var(--bd1)',borderRadius:8,padding:'16px 20px'}}>
+            <div style={{fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--t3)',marginBottom:6}}>{label}</div>
+            <div style={{fontSize:14,color,lineHeight:1.6}}>{val}</div>
+          </div>
+        ))}
+        <div style={{background:'var(--s1)',border:'1px solid var(--bd1)',borderRadius:8,padding:'16px 20px'}}>
+          <div style={{fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--t3)',marginBottom:8}}>Affected Dependencies</div>
+          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+            {c.deps.map(d=><span key={d} style={{background:'var(--bd1)',borderRadius:4,padding:'3px 10px',fontSize:12,color:'var(--t2)'}}>{d}</span>)}
+          </div>
+        </div>
+      </div>
+
+      <div style={{display:'flex',gap:10}}>
+        {c.state==='critical' && !c.rec ? (
+          <Btn variant='critical' size='lg' onClick={onProceed}>Act Now — Open Recovery Options</Btn>
+        ) : (
+          <Btn variant='primary' size='lg' onClick={onProceed}>Review Recommended Action</Btn>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── DECISION SCREEN ────────────────────────────────────────────────────────────
+
+function DecisionScreen({c, confStage, recalcInterrupt, onClearRecalc, onProceed, onRecovery, onEscalate, selectedPath, setSelectedPath, onLog}) {
+  const [showAlts, setShowAlts] = useState(false);
+  const noSafeRec = !c.rec;
+  const isCritical = c.state==='critical';
+  const confTooLow = confStage >= 3;
+
+  return (
+    <div className="fade" style={{padding:'28px 32px',maxWidth:780}}>
+      {recalcInterrupt && (
+        <div className="slide-down" style={{background:'var(--risk-bg)',border:'2px solid var(--risk-bd)',borderRadius:8,padding:'16px 20px',marginBottom:20,display:'flex',gap:12,alignItems:'flex-start'}}>
+          <div style={{fontSize:18,flexShrink:0}}>⟳</div>
+          <div style={{flex:1}}>
+            <div style={{fontWeight:700,marginBottom:4,color:'var(--risk-t)'}}>Case Updated — Previous Action Invalidated</div>
+            <div style={{fontSize:13,color:'var(--t2)',marginBottom:10}}>This case changed while you were reviewing it. The previous recommendation window closed. Options below reflect current conditions.</div>
+            <Btn size='sm' variant='ghost' onClick={onClearRecalc}>Acknowledge and continue</Btn>
+          </div>
+        </div>
+      )}
+
+      {confStage>=3 && (
+        <div className="slide-down" style={{background:'var(--crit-bg)',border:'1px solid var(--crit-bd)',borderRadius:8,padding:'16px 20px',marginBottom:20}}>
+          <div style={{fontWeight:700,color:'var(--crit-t)',marginBottom:4}}>System Confidence: Critical</div>
+          <div style={{fontSize:13,color:'var(--t2)',marginBottom:10}}>System confidence is too low to support a reliable recommendation. Conditions are changing faster than the guided path can account for.</div>
+          <div style={{display:'flex',gap:8}}>
+            <Btn size='sm' variant='danger' onClick={onRecovery}>Open Manual Recovery</Btn>
+            <Btn size='sm' variant='ghost' onClick={onEscalate}>Escalate Case</Btn>
+          </div>
+        </div>
+      )}
+
+      <div style={{marginBottom:4,fontSize:11,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.1em'}}>{isCritical?'Critical Intervention':'Decision Required'}</div>
+      <h2 style={{fontSize:20,fontWeight:700,marginBottom:4}}>{isCritical?'Immediate action is required.':'The current plan is no longer reliable.'}</h2>
+      <p style={{color:'var(--t2)',fontSize:13,marginBottom:24}}>{isCritical?'The remaining window is short. Confirm the safest path now to prevent visible service failure.':'Review the recommended path and confirm the safest next step.'}</p>
+
+      {/* AI Block */}
+      <div style={{marginBottom:c.rec&&!noSafeRec&&!confTooLow?12:16}}>
+        <AIBlock rec={c.rec} confStage={confStage} removed={noSafeRec||confTooLow}/>
+      </div>
+
+      {/* Consequence block — higher contrast, sits between rec and alternatives */}
+      {c.rec && !noSafeRec && !confTooLow && (
+        <div style={{background:'var(--s3)',border:'1px solid var(--bd3)',borderRadius:8,padding:isCritical?'12px 16px':'16px 20px',marginBottom:isCritical?12:16}}>
+          <div style={{fontSize:10,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--t2)',marginBottom:isCritical?6:10,fontWeight:600}}>
+            What happens if you confirm this
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:isCritical?'1fr':'1fr 1fr',gap:isCritical?6:10,fontSize:12}}>
+            <div style={{color:'var(--t1)',lineHeight:1.5}}>{c.rec.outcome}</div>
+            {!isCritical && (
+              <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                  <span style={{color:'var(--t3)',width:80,flexShrink:0}}>Dependencies</span>
+                  <span style={{color:'var(--t1)'}}>{c.deps.join(', ')}</span>
+                </div>
+                <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                  <span style={{color:'var(--t3)',width:80,flexShrink:0}}>Cost</span>
+                  <span style={{color:'var(--t1)'}}>{c.rec.cost}</span>
+                </div>
+                <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                  <span style={{color:'var(--t3)',width:80,flexShrink:0}}>Communication</span>
+                  <span style={{color:'var(--t1)'}}>Required after execution</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Alternatives toggle — only if rec exists and confidence not critical */}
+      {!noSafeRec && !confTooLow && !isCritical && (
+        <div style={{marginBottom:20}}>
+          <button onClick={()=>setShowAlts(v=>!v)}
+            style={{background:'none',border:'none',color:'var(--t3)',fontSize:12,cursor:'pointer',display:'flex',alignItems:'center',gap:5,padding:'4px 0',fontFamily:'var(--fn)'}}>
+            <span style={{fontSize:10}}>{showAlts?'▲':'▼'}</span>
+            Alternative Paths ({c.alts.length})
+          </button>
+          {showAlts && (
+            <div style={{marginTop:10,display:'flex',flexDirection:'column',gap:8}}>
+              {c.alts.map((alt,i)=>(
+                <div key={i} onClick={()=>{setSelectedPath(`alt${i}`);onLog('override',`Alternative selected: "${alt.title}"`)}}
+                  style={{background:selectedPath===`alt${i}`?'var(--s3)':'var(--s1)',border:`1px solid ${selectedPath===`alt${i}`?'var(--bd3)':'var(--bd1)'}`,borderRadius:8,padding:'14px 16px',cursor:'pointer',transition:'all .14s'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+                    <div style={{fontWeight:600,fontSize:13,flex:1,paddingRight:8}}>{alt.title}</div>
+                    {selectedPath===`alt${i}` && <span style={{fontSize:10,color:'var(--t3)',background:'var(--bd2)',borderRadius:3,padding:'2px 6px',flexShrink:0}}>SELECTED</span>}
+                  </div>
+                  <div style={{fontSize:12,color:'var(--t2)',marginBottom:8,lineHeight:1.5}}>{alt.tradeOff}</div>
+                  <div style={{display:'flex',gap:16,fontSize:11,fontFamily:'var(--mono)',color:'var(--t3)'}}>
+                    <span>Cost: <span style={{color:'var(--t1)'}}>{alt.cost}</span></span>
+                    <span>Risk: <span style={{color:alt.risk==='High'?'var(--crit-t)':'var(--ok-t)'}}>{alt.risk}</span></span>
+                    <span>Expires: <span style={{color:'var(--risk-t)'}}>{alt.expiresIn}m</span></span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* CTAs */}
+      {!confTooLow && (
+        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+          {noSafeRec ? (
+            <>
+              <Btn variant='danger' size='lg' onClick={onRecovery}>Open Manual Recovery</Btn>
+              <Btn variant='ghost' size='lg' onClick={onEscalate}>Escalate Case</Btn>
+            </>
+          ) : (
+            <>
+              <Btn variant={isCritical?'critical':'primary'} size='lg' onClick={()=>onProceed(selectedPath||'recommended')}>
+                {isCritical?'Confirm Action Now →':'Execute Recommendation →'}
+              </Btn>
+              {!isCritical && <Btn variant='ghost' onClick={onRecovery}>Manual Recovery</Btn>}
+              <Btn variant='ghost' onClick={onEscalate}>Escalate</Btn>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── CONFIRMATION LAYER ─────────────────────────────────────────────────────────
+
+function ConfirmationLayer({c, selectedPath, onConfirm, onBack, onLog}) {
+  const [reason, setReason] = useState('');
+  const [checked, setChecked] = useState(false);
+  const [err, setErr] = useState('');
+
+  const isOverride = selectedPath && selectedPath !== 'recommended';
+  const isCritOverride = isOverride && c.state==='critical';
+  const tier = isCritOverride?3:isOverride?2:1;
+
+  const pathLabel = selectedPath==='recommended'?c.rec?.title:
+    selectedPath==='alt0'?c.alts[0]?.title:
+    selectedPath==='alt1'?c.alts[1]?.title:'Manual action';
+
+  const handle = () => {
+    if(tier>=2 && !reason.trim()){setErr('A reason is required before confirming this override.');return;}
+    if(tier>=3 && !checked){setErr('You must acknowledge the risk before confirming.');return;}
+    onLog('confirm', `Action confirmed: "${pathLabel}"${isOverride?` [OVERRIDE — ${reason}]`:''}`);
+    onConfirm();
+  };
+
+  return (
+    <div className="fade" style={{padding:'28px 32px',maxWidth:680}}>
+      <div style={{marginBottom:4,fontSize:11,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.1em'}}>Confirmation</div>
+      <h2 style={{fontSize:20,fontWeight:700,marginBottom:4}}>Review the exact changes below before execution.</h2>
+      <p style={{color:'var(--t2)',fontSize:13,marginBottom:24}}>This cannot be undone without manual recovery.</p>
+
+      {isOverride && (
+        <div style={{background:'var(--risk-bg)',border:'1px solid var(--risk-bd)',borderRadius:8,padding:'12px 16px',marginBottom:16,fontSize:13,color:'var(--risk-t)'}}>
+          ⚠ You are deviating from the recommended path. {tier===3?'This is a critical-state override.':'This deviation will be recorded.'}
+        </div>
+      )}
+
+      <div style={{background:'var(--s1)',border:'1px solid var(--bd1)',borderRadius:8,padding:'20px',marginBottom:16}}>
+        {[['You are about to', pathLabel||'—','var(--t1)'],['Affected dependencies',c.deps.join(', '),'var(--t2)'],['Client communication','Will be triggered after execution','var(--t2)'],['Cost impact',c.rec?.cost||'See alternative selection','var(--t2)'],['Executed by','M. Okafor','var(--t2)']].map(([label,val,color])=>(
+          <div key={label} style={{display:'flex',gap:16,padding:'8px 0',borderBottom:'1px solid var(--bd1)'}}>
+            <div style={{width:160,flexShrink:0,fontSize:12,color:'var(--t3)'}}>{label}</div>
+            <div style={{fontSize:13,color,fontWeight:label==='You are about to'?600:400}}>{val}</div>
+          </div>
+        ))}
+      </div>
+
+      {tier>=2 && (
+        <div style={{marginBottom:16}}>
+          <label style={{display:'block',fontSize:12,color:'var(--t2)',marginBottom:6}}>Reason for overriding the recommended path <span style={{color:'var(--crit)'}}>*</span></label>
+          <textarea value={reason} onChange={e=>{setReason(e.target.value);setErr('')}} rows={3}
+            style={{background:'var(--s2)',border:`1px solid ${err?'var(--crit-bd)':'var(--bd2)'}`,borderRadius:4,color:'var(--t1)',fontFamily:'var(--fn)',fontSize:13,padding:'10px 12px',width:'100%',resize:'vertical',outline:'none'}}
+            placeholder="State the specific reason for this deviation..."/>
+        </div>
+      )}
+
+      {tier>=3 && (
+        <div style={{marginBottom:16,display:'flex',alignItems:'center',gap:10}}>
+          <input type='checkbox' id='ack' checked={checked} onChange={e=>setChecked(e.target.checked)} style={{width:16,height:16,cursor:'pointer'}}/>
+          <label htmlFor='ack' style={{fontSize:13,color:'var(--crit-t)',cursor:'pointer'}}>I understand the risk — confirming a critical-state override</label>
+        </div>
+      )}
+
+      {err && <div style={{fontSize:12,color:'var(--crit-t)',marginBottom:12}}>{err}</div>}
+
+      <div style={{display:'flex',gap:10}}>
+        <Btn variant={isOverride?'critical':'primary'} size='lg' onClick={handle}>
+          {tier>=3?'I Understand the Risk — Confirm Override':'Confirm and Execute'}
+        </Btn>
+        <Btn variant='ghost' size='lg' onClick={onBack}>Revisit Decision</Btn>
+      </div>
+    </div>
+  );
+}
+
+// ── PROGRESS SCREEN ─────────────────────────────────────────────────────────────
+
+function ProgressScreen({steps, onAdvance, onResolve, onPartial, onEscalate}) {
+  const done = steps.filter(s=>s.status==='complete').length;
+  const blocked = steps.filter(s=>s.status==='blocked').length;
+  const failed = steps.filter(s=>s.status==='failed').length;
+  const allDone = done===steps.length;
+  const hasIssue = blocked>0||failed>0;
+
+  const statusColor = {complete:'var(--ok)',pending:'var(--t3)',blocked:'var(--risk)',failed:'var(--crit)'};
+  const statusIcon  = {complete:'✓',pending:'·',blocked:'⚠',failed:'✗'};
+
+  return (
+    <div className="fade" style={{padding:'28px 32px',maxWidth:680}}>
+      <div style={{marginBottom:4,fontSize:11,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.1em'}}>Action In Progress</div>
+      <h2 style={{fontSize:20,fontWeight:700,marginBottom:4}}>The selected path is being executed.</h2>
+      <p style={{color:'var(--t2)',fontSize:13,marginBottom:24}}>Track progress, blockers, and confirmation updates here.</p>
+
+      <div style={{background:'var(--s1)',border:'1px solid var(--bd1)',borderRadius:8,overflow:'hidden',marginBottom:20}}>
+        {steps.map((step,i)=>(
+          <div key={i} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',borderBottom:i<steps.length-1?'1px solid var(--bd1)':'none',background:step.status==='failed'?'var(--crit-bg)':step.status==='blocked'?'var(--risk-bg)':'transparent'}}>
+            <span style={{fontFamily:'var(--mono)',fontWeight:700,fontSize:14,color:statusColor[step.status],width:16,textAlign:'center'}}>{statusIcon[step.status]}</span>
+            <span style={{flex:1,fontSize:13,color:step.status==='complete'?'var(--t2)':'var(--t1)',textDecoration:step.status==='complete'?'line-through':undefined}}>{step.label}</span>
+            <span style={{fontSize:11,color:statusColor[step.status],textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:600}}>{step.status}</span>
+          </div>
+        ))}
+      </div>
+
+      <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
+        {!allDone && !hasIssue && (
+          <Btn variant='primary' onClick={onAdvance}>Advance Execution</Btn>
+        )}
+        {hasIssue && <Btn variant='ghost' onClick={onEscalate}>Escalate Case</Btn>}
+        {allDone && <Btn variant='primary' size='lg' onClick={onResolve}>Mark as Resolved →</Btn>}
+        {hasIssue && done>0 && <Btn variant='ghost' size='lg' onClick={onPartial}>Mark Partially Resolved</Btn>}
+      </div>
+
+      {hasIssue && (
+        <div style={{background:'var(--risk-bg)',border:'1px solid var(--risk-bd)',borderRadius:8,padding:'12px 16px',fontSize:13,color:'var(--risk-t)'}}>
+          One or more execution steps could not be completed. The case cannot be marked Resolved until all blocks are cleared or the case is classified as Partially Resolved.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── RESOLUTION SCREEN ──────────────────────────────────────────────────────────
+
+function ResolutionScreen({outcome, c, onArchive, onReopen, onLog}) {
+  const isPartial = outcome==='partial';
+  return (
+    <div className="fade" style={{padding:'28px 32px',maxWidth:680}}>
+      <div style={{marginBottom:4,fontSize:11,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.1em'}}>Resolution Summary</div>
+      <h2 style={{fontSize:20,fontWeight:700,marginBottom:4,color:isPartial?'var(--cyan-t)':'var(--ok-t)'}}>{isPartial?'Immediate Risk Reduced':'Arrival Stabilized'}</h2>
+      <p style={{color:'var(--t2)',fontSize:13,marginBottom:24}}>{isPartial?'The case is more stable, but follow-up is still required before full closure.':'The plan is stable again and all required actions are complete.'}</p>
+
+      <div style={{background:'var(--s1)',border:`1px solid ${isPartial?'var(--cyan-bd)':'var(--ok-bd)'}`,borderRadius:8,padding:'20px',marginBottom:16}}>
+        {[['Final outcome',isPartial?'Partially Resolved':'Resolved'],['Current plan',`${c.flight} — arrival at ${c.hotel}`],['Communication',isPartial?'⚠ Client notification still pending':'✓ All required communication sent'],['Owner','M. Okafor']].map(([label,val])=>(
+          <div key={label} style={{display:'flex',gap:16,padding:'8px 0',borderBottom:'1px solid var(--bd1)'}}>
+            <div style={{width:160,flexShrink:0,fontSize:12,color:'var(--t3)'}}>{label}</div>
+            <div style={{fontSize:13,color:'var(--t1)'}}>{val}</div>
+          </div>
+        ))}
+      </div>
+
+      {isPartial && (
+        <div style={{background:'var(--cyan-bg)',border:'1px solid var(--cyan-bd)',borderRadius:8,padding:'16px',marginBottom:20}}>
+          <div style={{fontWeight:600,color:'var(--cyan-t)',marginBottom:4}}>Open Follow-Up Required</div>
+          <div style={{fontSize:13,color:'var(--t2)',marginBottom:8}}>Client communication has not been sent. This case cannot be archived until communication is completed or explicitly waived.</div>
+          <div style={{fontSize:12,color:'var(--t3)'}}>Remaining open dependency: <span style={{color:'var(--cyan-t)'}}>Client communication</span></div>
+        </div>
+      )}
+
+      <div style={{display:'flex',gap:10}}>
+        {!isPartial && <Btn variant='primary' onClick={()=>{onLog('archive','Case archived');onArchive()}}>Archive Case</Btn>}
+        {isPartial && <Btn variant='ghost' disabled>Archive Blocked — Comm Pending</Btn>}
+        <Btn variant='ghost' onClick={onReopen}>Reopen Case</Btn>
+      </div>
+    </div>
+  );
+}
+
+// ── RECOVERY SCREEN ────────────────────────────────────────────────────────────
+
+function RecoveryScreen({c, onEscalate}) {
+  const [action, setAction] = useState('');
+  const [reason, setReason] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const submit = () => {
+    if(action&&reason) setSubmitted(true);
+  };
+  return (
+    <div className="fade" style={{padding:'28px 32px',maxWidth:680}}>
+      <div style={{marginBottom:4,fontSize:11,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.1em'}}>Recovery Required</div>
+      <h2 style={{fontSize:20,fontWeight:700,marginBottom:4}}>The guided path is no longer sufficient.</h2>
+      <p style={{color:'var(--t2)',fontSize:13,marginBottom:24}}>Manual recovery or escalation is now required to protect the arrival outcome.</p>
+
+      {submitted ? (
+        <div className="fade" style={{background:'var(--purple-bg)',border:'1px solid var(--purple-bd)',borderRadius:8,padding:20}}>
+          <div style={{fontWeight:700,color:'var(--purple-t)',marginBottom:4}}>Manual override submitted</div>
+          <div style={{fontSize:13,color:'var(--t2)',marginBottom:10}}>All override actions are recorded with full audit severity. Reason: "{reason}"</div>
+          <Btn variant='ghost' onClick={onEscalate}>Escalate if needed</Btn>
+        </div>
+      ) : (
+        <>
+          <div style={{background:'var(--crit-bg)',border:'1px solid var(--crit-bd)',borderRadius:8,padding:'12px 16px',marginBottom:20,fontSize:13,color:'var(--crit-t)'}}>
+            All override actions are recorded in the audit log with elevated severity. A reason is required for every action taken in recovery mode.
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:12,marginBottom:20}}>
+            {[['Override Action','Describe the direct action you are taking',action,setAction,'text'],['Reason for Override','State the specific reason this override is necessary',reason,setReason,'textarea']].map(([label,ph,val,setter,type])=>(
+              <div key={label}>
+                <label style={{display:'block',fontSize:12,color:'var(--t2)',marginBottom:6}}>{label} <span style={{color:'var(--crit)'}}>*</span></label>
+                {type==='textarea'
+                  ? <textarea value={val} onChange={e=>setter(e.target.value)} rows={3} style={{background:'var(--s2)',border:'1px solid var(--bd2)',borderRadius:4,color:'var(--t1)',fontFamily:'var(--fn)',fontSize:13,padding:'10px 12px',width:'100%',resize:'vertical',outline:'none'}} placeholder={ph}/>
+                  : <input type='text' value={val} onChange={e=>setter(e.target.value)} style={{background:'var(--s2)',border:'1px solid var(--bd2)',borderRadius:4,color:'var(--t1)',fontFamily:'var(--fn)',fontSize:13,padding:'10px 12px',width:'100%',outline:'none'}} placeholder={ph}/>
+                }
+              </div>
+            ))}
+          </div>
+          <div style={{display:'flex',gap:10}}>
+            <Btn variant='danger' onClick={submit} disabled={!action||!reason}>Submit Override</Btn>
+            <Btn variant='ghost' onClick={onEscalate}>Escalate Case</Btn>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── CASE BREADCRUMB NAV ────────────────────────────────────────────────────────
+
+const STEP_LABELS = {
+  situation:'Situation', decision:'Decision', confirmation:'Confirmation',
+  progress:'Execution', resolution:'Resolution', recovery:'Recovery',
+  resolution_partial:'Resolution'
+};
+
+function CaseNav({view, state, onNavigate, canGoBack}) {
+  // Recovery and no-safe-rec states block breadcrumb navigation
+  const blocked = view==='recovery' || (state==='critical' && !canGoBack);
+  const steps = (state==='critical' || view==='recovery')
+    ? ['situation','decision','recovery']
+    : ['situation','decision','confirmation','progress','resolution'];
+  const idx = steps.indexOf(view==='resolution_partial'?'resolution':view);
+
+  return (
+    <div style={{display:'flex',alignItems:'center',padding:'0 20px',height:40,borderBottom:'1px solid var(--bd1)',flexShrink:0,background:'var(--s1)',gap:0}}>
+      {steps.map((s,i)=>{
+        const active = i===idx;
+        const done = i<idx;
+        // Allow clicking back to earlier steps (safe navigation only)
+        const clickable = done && !blocked && s!=='progress' && s!=='resolution' && onNavigate;
+        return (
+          <React.Fragment key={s}>
+            <div
+              onClick={clickable ? ()=>onNavigate(s) : undefined}
+              style={{
+                padding:'0 10px', fontSize:11, letterSpacing:'0.07em', fontWeight:active?700:400,
+                color: active?'var(--t1)': done?'var(--ok-t)':'var(--t3)',
+                whiteSpace:'nowrap', cursor: clickable?'pointer':'default',
+                textTransform:'uppercase',
+                textDecoration: clickable?'underline':'none',
+                textDecorationColor:'var(--ok-bd)'
+              }}>
+              {done && <span style={{marginRight:3,fontSize:9}}>✓</span>}
+              {STEP_LABELS[s]||s}
+            </div>
+            {i<steps.length-1 && <span style={{color:'var(--bd2)',fontSize:10,userSelect:'none'}}>›</span>}
+          </React.Fragment>
+        );
+      })}
+      {blocked && (
+        <span style={{marginLeft:'auto',fontSize:10,color:'var(--t3)',fontStyle:'italic'}}>
+          {view==='recovery'?'Navigation disabled in recovery mode':'Navigation disabled in critical state'}
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ── LOG PANEL ──────────────────────────────────────────────────────────────────
+
+function LogPanel({log, onClose}) {
+  const colors = {confirm:'var(--ok-t)',override:'var(--risk-t)',recalc:'var(--blue-t)',escalation:'var(--crit-t)',state:'var(--t2)',archive:'var(--cyan-t)',system:'var(--purple-t)'};
+  return (
+    <div style={{width:300,borderLeft:'1px solid var(--bd1)',display:'flex',flexDirection:'column',flexShrink:0,overflow:'hidden'}}>
+      <div style={{padding:'12px 16px',borderBottom:'1px solid var(--bd1)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--t3)'}}>Activity Log</span>
+        <button onClick={onClose} style={{background:'none',border:'none',color:'var(--t3)',cursor:'pointer',fontSize:14}}>✕</button>
+      </div>
+      <div style={{overflow:'auto',flex:1,padding:'8px 0'}}>
+        {log.length===0 && <div style={{padding:'20px 16px',color:'var(--t3)',fontSize:12}}>No activity recorded yet. Events will appear here as the system monitors, recommends, and executes actions.</div>}
+        {log.map(entry=>(
+          <div key={entry.id} style={{padding:'10px 16px',borderBottom:'1px solid var(--bd1)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:3}}>
+              <span style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:colors[entry.type]||'var(--t3)'}}>{entry.type}</span>
+              <span style={{fontSize:10,fontFamily:'var(--mono)',color:'var(--t3)'}}>{entry.ts}</span>
+            </div>
+            <div style={{fontSize:12,color:'var(--t2)',lineHeight:1.5}}>{entry.msg}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── CONFIDENCE BANNER ──────────────────────────────────────────────────────────
+
+function ConfBanner({stage}) {
+  if(!stage) return null;
+  const m = CONF_META[stage];
+  return (
+    <div className="slide-down" style={{background:stage>=3?'var(--crit-bg)':'var(--risk-bg)',borderBottom:`1px solid ${stage>=3?'var(--crit-bd)':'var(--risk-bd)'}`,padding:'8px 24px',display:'flex',alignItems:'center',gap:10,fontSize:12}}>
+      <Dot color={m.color}/>
+      <span style={{fontWeight:600,color:m.color}}>System confidence degraded</span>
+      <span style={{color:'var(--t2)'}}>— {m.msg}</span>
+    </div>
+  );
+}
+
+// ── BG ALERT ───────────────────────────────────────────────────────────────────
+
+function BgAlert({alert, onSwitch, onDismiss}) {
+  if(!alert) return null;
+  return (
+    <div className="slide-down" style={{position:'absolute',top:52,right:logAlertOffset,width:340,zIndex:200,background:'var(--crit-bg)',border:'1px solid var(--crit-bd)',borderRadius:8,padding:'14px 16px',boxShadow:'0 8px 32px rgba(0,0,0,0.7)',margin:12}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+        <div style={{display:'flex',alignItems:'center',gap:6}}>
+          <Dot color='var(--crit)'/>
+          <span style={{fontWeight:700,fontSize:13,color:'var(--crit-t)'}}>Background Escalation</span>
+        </div>
+        <button onClick={onDismiss} style={{background:'none',border:'none',color:'var(--t3)',cursor:'pointer',fontSize:13}}>✕</button>
+      </div>
+      <div style={{fontSize:13,color:'var(--t2)',marginBottom:12}}>{alert.msg}</div>
+      <div style={{display:'flex',gap:8}}>
+        <Btn size='sm' variant='danger' onClick={onSwitch}>Switch Case</Btn>
+        <Btn size='sm' variant='ghost' onClick={onDismiss}>Dismiss</Btn>
+      </div>
+    </div>
+  );
+}
+
+// ── STABLE SCREEN ──────────────────────────────────────────────────────────────
+
+function StableScreen({c}) {
+  return (
+    <div className="fade" style={{padding:'28px 32px',maxWidth:580}}>
+      <div style={{marginBottom:4,fontSize:11,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.1em'}}>Arrival Plan</div>
+      <h2 style={{fontSize:20,fontWeight:700,marginBottom:4,color:'var(--ok-t)'}}>Arrival Plan Stable</h2>
+      <p style={{color:'var(--t2)',fontSize:13,marginBottom:28}}>Everything is aligned. No action is required right now. Monitoring continues in the background.</p>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+        {[['Flight',c.flight],['Airport',c.airport],['Hotel',c.hotel],['ETA',c.arrival],['Owner',c.owner],['Communication','Not required']].map(([k,v])=>(
+          <div key={k} style={{background:'var(--s1)',border:'1px solid var(--bd1)',borderRadius:6,padding:'12px 14px'}}>
+            <div style={{fontSize:10,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{k}</div>
+            <div style={{fontSize:13,color:'var(--t1)'}}>{v}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── LOCKED SCREEN ──────────────────────────────────────────────────────────────
+
+function LockedScreen({c}) {
+  return (
+    <div className="fade" style={{padding:'28px 32px',maxWidth:560}}>
+      <div style={{background:'var(--s1)',border:'1px solid var(--bd2)',borderRadius:8,padding:24}}>
+        <div style={{fontWeight:700,fontSize:15,marginBottom:8}}>Case Controlled by Another Operator</div>
+        <div style={{fontSize:13,color:'var(--t2)',marginBottom:20}}>This case is currently locked to prevent conflicting actions. You can continue in read-only mode or request takeover if intervention is required.</div>
+        {[['Current owner',c.lockHolder],['Lock reason','Active case handling in progress'],['Editable sections','None'],['Takeover status','Available on request']].map(([k,v])=>(
+          <div key={k} style={{display:'flex',gap:16,padding:'8px 0',borderBottom:'1px solid var(--bd1)'}}>
+            <div style={{width:140,flexShrink:0,fontSize:12,color:'var(--t3)'}}>{k}</div>
+            <div style={{fontSize:13,color:'var(--t1)'}}>{v}</div>
+          </div>
+        ))}
+        <div style={{display:'flex',gap:10,marginTop:20}}>
+          <Btn variant='ghost'>Request Takeover</Btn>
+          <Btn variant='ghost'>Continue Read-Only</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── PARTIAL CASE SCREEN ────────────────────────────────────────────────────────
+
+function PartialCaseScreen({c}) {
+  return (
+    <div className="fade" style={{padding:'28px 32px',maxWidth:600}}>
+      <div style={{marginBottom:4,fontSize:11,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.1em'}}>Resolution Summary</div>
+      <h2 style={{fontSize:20,fontWeight:700,marginBottom:4,color:'var(--cyan-t)'}}>Immediate Risk Reduced</h2>
+      <p style={{color:'var(--t2)',fontSize:13,marginBottom:24}}>The situation is more stable, but follow-up is still required before full closure.</p>
+      <div style={{background:'var(--cyan-bg)',border:'1px solid var(--cyan-bd)',borderRadius:8,padding:'16px',marginBottom:16}}>
+        <div style={{fontWeight:600,color:'var(--cyan-t)',marginBottom:4}}>Open Follow-Up Required</div>
+        <div style={{fontSize:13,color:'var(--t2)'}}>{c.whatChanged}</div>
+        <div style={{fontSize:12,color:'var(--t3)',marginTop:6}}>Remaining: <span style={{color:'var(--cyan-t)'}}>{c.deps.join(', ')}</span></div>
+      </div>
+      <Btn variant='ghost' disabled>Archive Blocked — Follow-Up Pending</Btn>
+    </div>
+  );
+}
+
+// ── APP ────────────────────────────────────────────────────────────────────────
+
+function App() {
+  const [cases, setCases] = useState(INIT_CASES);
+  const [activeCase, setActiveCase] = useState(null);
+  const [view, setView]     = useState('queue');
+  const [confStage, setConfStage] = useState(0);
+  const [recalcInterrupt, setRecalcInterrupt] = useState(false);
+  const [selectedPath, setSelectedPath] = useState('recommended');
+  const [log, setLog]       = useState([]);
+  const [logOpen, setLogOpen] = useState(false);
+  const [bgAlert, setBgAlert] = useState(null);
+  const [execSteps, setExecSteps] = useState([]);
+  const [outcome, setOutcome] = useState(null);
+  const [contentKey, setContentKey] = useState(0); // triggers fade on screen change
+  const [backFromProgressWarn, setBackFromProgressWarn] = useState(false);
+  const [escalatedMsg, setEscalatedMsg] = useState(null); // inline escalation feedback
+
+  const aLog = useCallback((type, msg)=>addLog(setLog, type, msg), []);
+
+  const navigate = (nextView) => {
+    setContentKey(k=>k+1);
+    setView(nextView);
+  };
+
+  const openCase = (c) => {
+    setActiveCase(c);
+    setExecSteps(c.execSteps||[]);
+    setSelectedPath('recommended');
+    setConfStage(0);
+    setRecalcInterrupt(false);
+    setOutcome(null);
+    setEscalatedMsg(null);
+    setBackFromProgressWarn(false);
+    setContentKey(k=>k+1);
+    if(c.state==='stable') navigate('situation');
+    else if(c.state==='progress') navigate('progress');
+    else if(c.state==='partial') navigate('resolution_partial');
+    else navigate('situation');
+    aLog('state', `Case opened: ${c.client} (${c.id}) — ${c.state}`);
+  };
+
+  const backToQueue = () => {
+    if(view==='progress') { setBackFromProgressWarn(true); return; }
+    setActiveCase(null);
+    setView('queue');
+    setEscalatedMsg(null);
+  };
+
+  // Simulation: Escalate
+  const simEscalate = () => {
+    const others = cases.filter(c=>activeCase?c.id!==activeCase.id:true);
+    const target = others.find(c=>c.state==='risk'||c.state==='decision') || others[0];
+    if(!target) return;
+    setBgAlert({caseId:target.id, msg:`${target.client} escalated to Critical Intervention. ${target.ttf||'<10'}m window remaining.`});
+    setCases(prev=>prev.map(c=>c.id===target.id?{...c,state:'critical',ttf:Math.max(1,(c.ttf||20)-12)}:c));
+    aLog('escalation', `Background escalation: ${target.client} (${target.id}) promoted to Critical Intervention`);
+  };
+
+  // Simulation: Advance Time
+  const advanceTime = () => {
+    if(activeCase) {
+      setActiveCase(prev=>{
+        const newTtf = prev.ttf!=null?Math.max(0,prev.ttf-8):prev.ttf;
+        const updated = {...prev, ttf:newTtf,
+          rec:prev.rec?{...prev.rec, expiresIn:Math.max(0,prev.rec.expiresIn-8)}:prev.rec,
+          alts:prev.alts.map(a=>({...a,expiresIn:Math.max(0,a.expiresIn-8)}))};
+        if((view==='decision'||view==='confirmation')&&newTtf<=0){
+          setRecalcInterrupt(true);
+          aLog('recalc','Forced recalculation — decision window expired. Previous recommendation invalidated.');
+        }
+        return updated;
+      });
+    }
+    setCases(prev=>prev.map(c=>({...c,ttf:c.ttf!=null?Math.max(0,c.ttf-8):c.ttf})));
+    aLog('system','Time advanced +8 minutes. All case windows shortened.');
+  };
+
+  // Simulation: Destabilize
+  const destabilize = () => {
+    setConfStage(prev=>{
+      const next = prev>=3?0:prev+1;
+      if(next===0) aLog('system','System confidence restored. Recalculation complete.');
+      else if(next===3) aLog('system','System confidence: CRITICAL. Guided path removed. Manual recovery required.');
+      else aLog('system',`System confidence degraded to Stage ${next}. Multiple dependencies changed in rapid succession.`);
+      return next;
+    });
+  };
+
+  const handleProceed = (path) => {
+    setSelectedPath(path||'recommended');
+    if(path&&path!=='recommended') aLog('override',`Override initiated — deviating from recommended path: "${path}"`);
+    navigate('confirmation');
+    aLog('state','Moved to Confirmation layer');
+  };
+
+  const handleConfirm = () => {
+    navigate('progress');
+    aLog('state','Execution started — Action In Progress');
+  };
+
+  const advanceExec = () => {
+    setExecSteps(prev=>{
+      const nextPending = prev.findIndex(s=>s.status==='pending');
+      if(nextPending===-1) return prev;
+      const isLast = nextPending===prev.length-1;
+      const newStatus = isLast?'blocked':'complete';
+      const updated = prev.map((s,i)=>i===nextPending?{...s,status:newStatus}:s);
+      aLog('confirm',`Execution step: "${prev[nextPending].label}" — ${newStatus}`);
+      return updated;
+    });
+  };
+
+  const handleResolve = () => {
+    setOutcome('resolved');
+    setActiveCase(prev=>({...prev,state:'resolved'}));
+    navigate('resolution');
+    aLog('state','Case marked Resolved — all criteria satisfied');
+  };
+
+  const handlePartial = () => {
+    setOutcome('partial');
+    setActiveCase(prev=>({...prev,state:'partial'}));
+    navigate('resolution');
+    aLog('state','Case marked Partially Resolved — open dependency: client communication');
+  };
+
+  const handleEscalate = () => {
+    setActiveCase(prev=>({...prev,state:'escalated'}));
+    setEscalatedMsg(`Case escalated — ownership transferred to escalation team. Full handoff record written to audit log.`);
+    aLog('escalation',`Case escalated. Handoff record logged. Ownership transferred.`);
+  };
+
+  const handleArchive = () => {
+    setCases(prev=>prev.map(c=>c.id===activeCase.id?{...c,state:'resolved'}:c));
+    setActiveCase(null);
+    setView('queue');
+  };
+
+  const handleRecovery = () => {
+    navigate('recovery');
+    aLog('state','Entered Manual Recovery — guided path no longer supported');
+  };
+
+  const renderMain = () => {
+    if(!activeCase) return null;
+    if(activeCase.locked) return <LockedScreen c={activeCase}/>;
+    if(activeCase.state==='stable') return <StableScreen c={activeCase}/>;
+
+    // Escalated inline feedback
+    if(escalatedMsg) return (
+      <div className="fade" style={{padding:'28px 32px',maxWidth:620}}>
+        <div style={{background:'var(--purple-bg)',border:'1px solid var(--purple-bd)',borderRadius:8,padding:24}}>
+          <div style={{fontWeight:700,color:'var(--purple-t)',fontSize:15,marginBottom:8}}>Case Escalated</div>
+          <div style={{fontSize:13,color:'var(--t2)',lineHeight:1.6,marginBottom:20}}>{escalatedMsg}</div>
+          <Btn variant='ghost' onClick={()=>{setActiveCase(null);setView('queue');}}>Return to Queue</Btn>
+        </div>
+      </div>
+    );
+
+    if(view==='situation') return <SituationScreen key={contentKey} c={activeCase} onProceed={()=>{navigate('decision');aLog('state','Opened Decision Screen');}}/>;
+    if(view==='decision') return (
+      <DecisionScreen key={contentKey} c={activeCase} confStage={confStage} recalcInterrupt={recalcInterrupt}
+        onClearRecalc={()=>{setRecalcInterrupt(false);aLog('system','Recalculation interrupt acknowledged');}}
+        onProceed={handleProceed} onRecovery={handleRecovery} onEscalate={handleEscalate}
+        selectedPath={selectedPath} setSelectedPath={p=>setSelectedPath(p)} onLog={aLog}/>
+    );
+    if(view==='confirmation') return (
+      <ConfirmationLayer key={contentKey} c={activeCase} selectedPath={selectedPath}
+        onConfirm={handleConfirm} onBack={()=>navigate('decision')} onLog={aLog}/>
+    );
+    if(view==='progress') return (
+      <ProgressScreen key={contentKey} steps={execSteps} onAdvance={advanceExec}
+        onResolve={handleResolve} onPartial={handlePartial} onEscalate={handleEscalate}/>
+    );
+    if(view==='resolution') return (
+      <ResolutionScreen key={contentKey} outcome={outcome} c={activeCase}
+        onArchive={handleArchive} onReopen={()=>{navigate('situation');setOutcome(null);}} onLog={aLog}/>
+    );
+    if(view==='resolution_partial') return <PartialCaseScreen key={contentKey} c={activeCase}/>;
+    if(view==='recovery') return <RecoveryScreen key={contentKey} c={activeCase} onEscalate={handleEscalate}/>;
+    return null;
+  };
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',height:'100vh',overflow:'hidden',position:'relative'}}>
+      <TopBar view={view} activeCase={activeCase} onBack={backToQueue}
+        onSimEsc={simEscalate} onAdvTime={advanceTime} onDestab={destabilize}
+        confStage={confStage} logOpen={logOpen} setLogOpen={setLogOpen}/>
+
+      {/* Onboarding strip */}
+      {view==='queue' && (
+        <div style={{background:'var(--s1)',borderBottom:'1px solid var(--bd1)',padding:'6px 24px',display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <span style={{fontSize:11,color:'var(--t3)',letterSpacing:'0.02em'}}>Interactive prototype — open any case, then use the <span style={{color:'var(--bd3)'}}>Simulate</span> controls (Escalate, Advance Time, Destabilize) to trigger system behavior.</span>
+        </div>
+      )}
+
+      {confStage>0 && <ConfBanner stage={confStage}/>}
+
+      <div style={{display:'flex',flex:1,overflow:'hidden',position:'relative'}}>
+        {view==='queue' ? (
+          <QueueView cases={cases} onOpen={openCase}/>
+        ) : (
+          <>
+            <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+              <CaseNav view={view} state={activeCase?.state}
+                onNavigate={(s)=>{navigate(s); aLog('state',`Navigated back to ${STEP_LABELS[s]||s}`);}}
+                canGoBack={!escalatedMsg}/>
+              <div style={{flex:1,overflow:'auto'}}>
+                {renderMain()}
+              </div>
+            </div>
+            {logOpen && <LogPanel log={log} onClose={()=>setLogOpen(false)}/>}
+          </>
+        )}
+      </div>
+
+      {/* Back-from-progress warning */}
+      {backFromProgressWarn && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div className="fade" style={{background:'var(--s2)',border:'1px solid var(--bd2)',borderRadius:10,padding:28,maxWidth:440,width:'90%'}}>
+            <div style={{fontWeight:700,fontSize:15,marginBottom:8}}>Leave execution in progress?</div>
+            <div style={{fontSize:13,color:'var(--t2)',marginBottom:20,lineHeight:1.6}}>
+              Returning to the queue will not cancel the current execution, but you will lose visibility of progress until you reopen this case. The execution state remains active.
+            </div>
+            <div style={{display:'flex',gap:10}}>
+              <Btn variant='ghost' onClick={()=>{setBackFromProgressWarn(false);setActiveCase(null);setView('queue');}}>Return to Queue</Btn>
+              <Btn variant='primary' onClick={()=>setBackFromProgressWarn(false)}>Stay Here</Btn>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Background escalation alert */}
+      {bgAlert && (
+        <div style={{position:'fixed',top:60,right:logOpen?312:8,zIndex:300,width:330,background:'var(--crit-bg)',border:'1px solid var(--crit-bd)',borderRadius:8,padding:'14px 16px',boxShadow:'0 8px 32px rgba(0,0,0,.7)'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+            <div style={{display:'flex',alignItems:'center',gap:6}}>
+              <Dot color='var(--crit)'/>
+              <span style={{fontWeight:700,fontSize:11,color:'var(--crit-t)',textTransform:'uppercase',letterSpacing:'0.08em'}}>Background Escalation</span>
+            </div>
+            <button onClick={()=>setBgAlert(null)} style={{background:'none',border:'none',color:'var(--t3)',cursor:'pointer'}}>✕</button>
+          </div>
+          <div style={{fontSize:13,color:'var(--t2)',marginBottom:10}}>{bgAlert.msg}</div>
+          <div style={{display:'flex',gap:8}}>
+            <Btn size='sm' variant='danger' onClick={()=>{setBgAlert(null);openCase(cases.find(c=>c.id===bgAlert.caseId)||cases[0]);}}>Switch Case</Btn>
+            <Btn size='sm' variant='ghost' onClick={()=>setBgAlert(null)}>Dismiss</Btn>
+          </div>
+        </div>
+      )}
+
+      <TweaksPanel/>
+    </div>
+  );
+}
+
+// ── TWEAKS ─────────────────────────────────────────────────────────────────────
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accentColor": "#3B82F6",
+  "showTTFCountdown": true,
+  "queueDensity": "comfortable"
+}/*EDITMODE-END*/;
+
+function TweaksPanel() {
+  const [open, setOpen] = useState(false);
+  const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
+
+  useEffect(()=>{
+    window.addEventListener('message',(e)=>{
+      if(e.data?.type==='__activate_edit_mode') setOpen(true);
+      if(e.data?.type==='__deactivate_edit_mode') setOpen(false);
+    });
+    window.parent.postMessage({type:'__edit_mode_available'},'*');
+  },[]);
+
+  const set = (k,v)=>{
+    const next={...tweaks,[k]:v};
+    setTweaks(next);
+    window.parent.postMessage({type:'__edit_mode_set_keys',edits:next},'*');
+  };
+
+  if(!open) return null;
+  return (
+    <div style={{position:'fixed',bottom:20,right:20,width:260,background:'var(--s2)',border:'1px solid var(--bd2)',borderRadius:10,padding:16,zIndex:400,boxShadow:'0 8px 32px rgba(0,0,0,.7)'}}>
+      <div style={{fontWeight:700,fontSize:12,textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--t3)',marginBottom:14}}>Tweaks</div>
+      <div style={{marginBottom:12}}>
+        <div style={{fontSize:11,color:'var(--t2)',marginBottom:6}}>Accent color</div>
+        <input type='color' value={tweaks.accentColor} onChange={e=>set('accentColor',e.target.value)} style={{width:'100%',height:32,borderRadius:4,border:'1px solid var(--bd2)',background:'none',cursor:'pointer'}}/>
+      </div>
+      <div style={{marginBottom:12,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <div style={{fontSize:11,color:'var(--t2)'}}>Show TTF countdown</div>
+        <input type='checkbox' checked={tweaks.showTTFCountdown} onChange={e=>set('showTTFCountdown',e.target.checked)} style={{cursor:'pointer'}}/>
+      </div>
+      <div style={{marginBottom:4}}>
+        <div style={{fontSize:11,color:'var(--t2)',marginBottom:6}}>Queue density</div>
+        <select value={tweaks.queueDensity} onChange={e=>set('queueDensity',e.target.value)} style={{background:'var(--s3)',border:'1px solid var(--bd2)',borderRadius:4,color:'var(--t1)',fontFamily:'var(--fn)',fontSize:12,padding:'5px 8px',width:'100%'}}>
+          <option value='compact'>Compact</option>
+          <option value='comfortable'>Comfortable</option>
+        </select>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

@@ -1,0 +1,647 @@
+State Governance + Done-State Model
+Project: The Arrival Control Engine Version: Blueprint Draft v1 Language: English
+
+1. Purpose of this deliverable
+This document defines the governance model for system states in The Arrival Control Engine.
+Its job is to remove ambiguity around:
+what each state actually means,
+when a case is allowed to enter or exit that state,
+what “done” means operationally,
+what “done” means experientially,
+and how the system should distinguish between resolved, partially resolved, failed, escalated, and archived.
+This is not visual design. This is the decision and status logic that the UI, product behavior, and implementation will depend on.
+
+2. Core governance principle
+The system must never imply closure before closure is real.
+A case is not “done” because an action was attempted. A case is not “done” because a recommendation was executed. A case is only “done” when the system can clearly determine whether:
+the arrival plan is operationally stable,
+required follow-through is complete,
+the current status is honest and defensible.
+That means the product needs to distinguish between:
+operational stabilization
+experience completion
+administrative closure
+These are not the same thing.
+
+3. State model overview
+Active states
+These represent cases still in motion.
+S0 — Stable Plan
+S1 — Risk Detected
+S2 — Decision Required
+S3 — Critical Intervention
+S4 — Action In Progress
+S6 — Failed / Escalated
+Completion states
+These represent outcome-level case statuses.
+Resolved
+Partially Resolved
+Failed
+Escalated
+Archived
+Important distinction
+In the original project language, S5 — Resolved and S6 — Failed / Escalated function as state-machine stages. For governance, that is not enough.
+The blueprint should treat final statuses as a stricter layer of outcome classification:
+a case may pass through S4 and then become Resolved
+or Partially Resolved
+or Failed
+or Escalated
+and only later become Archived
+This is cleaner, more realistic, and more implementable.
+
+4. Canonical status architecture
+Layer A — Operational journey state
+This answers:
+“Where is this case in the workflow right now?”
+Possible values:
+Stable Plan
+Risk Detected
+Decision Required
+Critical Intervention
+Action In Progress
+Recovery Required
+Layer B — Outcome status
+This answers:
+“What is the current truth of this case?”
+Possible values:
+Resolved
+Partially Resolved
+Failed
+Escalated
+Archived
+Why this split is necessary
+Without this split, the product blurs:
+workflow progress,
+actual outcome,
+and record lifecycle.
+That creates false closure.
+
+5. Canonical state definitions
+
+S0 — Stable Plan
+Definition
+All known dependencies are aligned within acceptable tolerance. No immediate operator action is required.
+This state means
+the current plan is still trustworthy
+monitoring continues silently
+no active intervention is needed
+Entry criteria
+all critical dependencies are currently valid
+no unresolved risk exceeds tolerance
+no required operator decision is pending
+no open recovery task exists
+Exit criteria
+Exit S0 when any of the following becomes true:
+a dependency shifts outside tolerance
+data freshness falls below trust threshold
+a new signal changes risk classification
+a client or supplier event invalidates the current plan
+What S0 does not mean
+the journey is complete
+the case is closed
+the arrival is guaranteed to succeed
+It only means the plan is stable for now.
+UX intent
+Calm, quiet, low-density visibility.
+State copy
+Primary label: Stable Plan System message: Everything is aligned. No action required. Secondary message: Monitoring continues in the background.
+
+S1 — Risk Detected
+Definition
+A deviation has been detected, but the plan may still hold. The operator needs context, not immediate action.
+This state means
+something changed
+the system believes it may matter
+the case requires interpretation, not yet intervention
+Entry criteria
+a meaningful variable changed
+the current plan remains temporarily viable
+there is not yet enough impact to force a decision
+the system can still recommend “monitor” as the safest near-term path
+Exit criteria
+Exit S1 when:
+the risk returns within tolerance and the case returns to S0
+impact grows and the case moves to S2
+time pressure compresses the case into S3
+uncertainty becomes severe enough to require manual recovery logic
+What S1 does not mean
+action is urgent
+the plan is broken
+the operator must interrupt current work immediately
+UX intent
+Readable signal without overreacting.
+State copy
+Primary label: Risk Detected System message: A change was detected. The plan may still hold. Secondary message: Review the updated situation before taking action.
+
+S2 — Decision Required
+Definition
+The current plan is no longer reliable enough to remain untouched. A decision is now required.
+This state means
+the original plan is no longer sufficient
+the system has enough context to frame a decision
+the operator must choose a path or confirm the recommended one
+Entry criteria
+one or more dependencies materially broke the current plan
+the system can explain what changed and why it matters
+at least one viable path exists
+the case is still within a controlled decision window
+Exit criteria
+Exit S2 when:
+the operator confirms a path and the case moves to S4
+the operator chooses manual override and recovery logic begins
+time pressure compresses the case into S3
+new data invalidates the decision set and the case is recalculated
+What S2 does not mean
+all options are equal
+the system should show broad branching
+the user should compare raw data manually
+UX intent
+Reduce branching. Make the safest action obvious.
+State copy
+Primary label: Decision Required System message: The current plan is no longer reliable. Secondary message: Review the recommended path and confirm the safest next step.
+
+S3 — Critical Intervention
+Definition
+The time window to prevent visible service failure is now short. The operator must act immediately.
+This state means
+the case is high-risk
+hesitation now creates material failure risk
+the interface must reduce optionality and drive action
+Entry criteria
+the plan is no longer viable
+remaining time is below critical threshold
+delay in action is likely to produce visible breakdown
+a recommendation or escalation path must be surfaced immediately
+Exit criteria
+Exit S3 when:
+a path is confirmed and the case moves to S4
+the case is escalated
+the system loses confidence and hands control to manual recovery
+the critical window passes and the case outcome becomes failed or escalated
+What S3 does not mean
+show more context
+allow leisurely exploration
+treat alternatives as visually equal
+UX intent
+Directive, compressed, high-confidence action support.
+State copy
+Primary label: Critical Intervention System message: Immediate action is required to prevent service failure. Secondary message: Confirm the safest action now.
+
+S4 — Action In Progress
+Definition
+A decision has been made and execution is now underway.
+This state means
+thinking should stop
+visibility should increase
+the system must show what is completed, pending, blocked, or failed
+Entry criteria
+a recommended or manual path was confirmed
+execution has started
+at least one downstream update or dependency is being processed
+Exit criteria
+Exit S4 when:
+all required actions succeed and the case becomes Resolved
+enough of the plan is stabilized for the case to become Partially Resolved
+execution breaks and the case becomes Failed
+execution leaves guided scope and the case becomes Escalated
+What S4 does not mean
+the case is done
+the recommendation worked
+communication is complete
+the plan is stable again
+UX intent
+Replace uncertainty with progress visibility.
+State copy
+Primary label: Action In Progress System message: The selected path is being executed. Secondary message: Track progress, blockers, and confirmation updates here.
+
+Recovery Required
+Definition
+The guided path is no longer enough, reliable, or appropriate. The operator must recover control through escalation or manual handling.
+This state means
+automation or guidance is insufficient
+the case must be stabilized through human intervention
+traceability is now essential
+Entry criteria
+no safe recommendation exists
+execution failed materially
+dependencies conflict
+another actor locked a required dependency
+fresh signals invalidated the guided path
+Exit criteria
+Exit Recovery Required when:
+manual recovery stabilizes the case and a final outcome status is assigned
+the case is escalated
+the case fails conclusively
+the case is re-entered into a controlled execution path
+UX intent
+Control, traceability, and safe manual action.
+State copy
+Primary label: Recovery Required System message: The guided path is no longer sufficient. Secondary message: Manual recovery or escalation is now required.
+
+6. Outcome status governance
+This is the most important section.
+These statuses define the official truth of the case.
+
+A. Resolved
+Definition
+The arrival plan has been stabilized and all required operational actions are complete.
+Resolved means
+the active risk has been removed
+the current plan is trustworthy again
+no unresolved blocker remains that could materially compromise the arrival
+required communication has either:
+been sent,
+been explicitly waived,
+or is not required by rule
+Minimum criteria
+A case may only be marked Resolved if all of the following are true:
+the active disruption has been addressed
+all required downstream updates are complete
+no critical dependency remains blocked
+the case no longer requires operator intervention
+the final state is explainable in the log
+communication requirements are satisfied
+Disqualifiers
+A case must not be marked Resolved if:
+a material dependency is still pending
+communication is required but unsent
+execution succeeded only partially
+a blocker still exists, even if risk is temporarily reduced
+the team is waiting on external confirmation that matters to arrival success
+Who can assign it
+assigned owner
+or authorized operator with override permission
+Confirmation requirement
+Yes.
+Comment requirement
+Recommended when resolution included exception handling or override.
+Reversible?
+Yes, if new information reopens material risk.
+UI meaning
+This is true closure, not optimistic closure.
+Status copy
+Primary label: Resolved System message: The arrival plan is stable again. Secondary message: All required actions are complete and no immediate follow-up is needed.
+
+B. Partially Resolved
+Definition
+The case has been stabilized enough to reduce immediate criticality, but meaningful follow-up is still open.
+Partially Resolved means
+the most urgent risk has been mitigated
+the case is no longer in immediate failure mode
+one or more important dependencies remain unresolved
+the operator still needs visibility or follow-up
+Minimum criteria
+A case may be marked Partially Resolved when:
+the immediate failure risk is reduced
+the selected mitigation is active or confirmed
+at least one meaningful dependency remains open
+the case does not currently require emergency intervention
+the remaining open item is clearly logged
+Valid examples
+transfer rescheduled, hotel notification still pending
+backup vehicle confirmed, client communication not yet delivered
+arrival stabilized temporarily, final supplier confirmation still open
+Disqualifiers
+A case must not be marked Partially Resolved if:
+the case is still critical
+no meaningful stabilization happened
+the operator is simply waiting without mitigation
+the outcome is too uncertain to describe as stabilized
+Who can assign it
+assigned owner
+or authorized operator
+Confirmation requirement
+Yes.
+Comment requirement
+Yes. Open dependency must be specified.
+Reversible?
+Yes.
+UI meaning
+This status prevents fake completion while avoiding overstatement of failure.
+Status copy
+Primary label: Partially Resolved System message: The immediate risk has been reduced, but follow-up is still required. Secondary message: One or more important dependencies remain open.
+
+C. Failed
+Definition
+The selected path did not achieve a viable arrival outcome, and the case cannot honestly be described as stabilized.
+Failed means
+the intended mitigation did not work
+the plan remains materially broken
+the case outcome is unsuccessful unless escalated into a different path
+Minimum criteria
+A case may be marked Failed when:
+a meaningful attempt was made
+the attempt did not restore viability
+no active mitigation currently protects the arrival
+the case cannot truthfully be classified as resolved or partially resolved
+Disqualifiers
+A case must not be marked Failed if:
+the case is still actively being recovered by a valid path
+an escalation path is open and in progress
+the plan is unstable but not yet conclusively unsuccessful
+Who can assign it
+assigned owner
+senior operator
+system may suggest, but human confirmation is required
+Confirmation requirement
+Yes, strongly required.
+Comment requirement
+Yes. Failure reason must be logged.
+Reversible?
+Yes, but only through new recovery action.
+UI meaning
+Failure is a truthful outcome, not a system embarrassment.
+Status copy
+Primary label: Failed System message: The selected path did not restore a viable arrival plan. Secondary message: Additional recovery action is required.
+
+D. Escalated
+Definition
+The case has moved beyond the scope of the guided workflow and now requires higher authority, external intervention, or a different operational owner.
+Escalated means
+the current operator should no longer carry sole responsibility
+the system cannot safely resolve the case within normal flow
+ownership, authority, or intervention scope has changed
+Minimum criteria
+A case may be marked Escalated when:
+normal guided handling is insufficient
+the case requires higher-level decision-making, supplier intervention, or exception authority
+escalation target is identified
+handoff or escalation event is logged
+Disqualifiers
+A case must not be marked Escalated if:
+the operator simply wants more time
+the issue remains within normal ownership scope
+no receiving party is defined
+escalation has not actually occurred
+Who can assign it
+assigned owner
+senior operator
+system may recommend, but human confirmation is required
+Confirmation requirement
+Yes.
+Comment requirement
+Yes. Escalation reason and receiving party are required.
+Reversible?
+Yes, if escalation resolves and the case returns to active handling.
+UI meaning
+Escalated is not failure by default. It is transfer of resolution scope.
+Status copy
+Primary label: Escalated System message: This case now requires intervention beyond the guided workflow. Secondary message: Ownership or authority has shifted to a higher-support path.
+
+E. Archived
+Definition
+The case is closed as a record and removed from active operational attention.
+Archived means
+no active work remains
+the official outcome has already been assigned
+the case remains accessible for audit, but not for active queue management
+Minimum criteria
+A case may only be archived when:
+it already has a final outcome status
+no active follow-up task remains
+no pending communication obligation remains
+the audit trail is complete enough for later review
+Disqualifiers
+A case must not be archived if:
+it is still pending communication
+it is partially resolved with unresolved operational work
+it is escalated but still active
+any meaningful task remains open
+Who can assign it
+assigned owner
+automation rule after eligible delay
+admin / supervisor
+Confirmation requirement
+Not always; can be automated.
+Comment requirement
+Optional unless archived manually due to exception.
+Reversible?
+Yes, if reopened.
+UI meaning
+Archive is record closure, not outcome type.
+Status copy
+Primary label: Archived System message: This case has been closed and removed from active operations. Secondary message: Full history remains available in the audit log.
+
+7. Done-state model
+This is the core closure framework.
+“Done” is not one thing
+The product should recognize three different closure layers:
+1. Operationally Done
+The plan is stable again and no critical action remains open.
+2. Experience Done
+Any required client-facing communication has been completed, waived, or explicitly deemed unnecessary.
+3. Administratively Done
+The case no longer requires active queue presence and can be archived.
+
+Recommended done-state logic
+Done Level 1 — Operationally Complete
+Use when:
+all critical dependencies are stable
+no active blocker remains
+the arrival plan is trustworthy
+Done Level 2 — Experience Complete
+Use when:
+operational completion is true
+and required client communication obligations are satisfied
+Done Level 3 — Record Closed
+Use when:
+experience completion is true
+and the case is ready to leave the active operational surface
+
+8. Communication rule inside the done-state model
+You asked to define this later as its own deliverable, but governance already needs a rule.
+So here is the interim governing rule:
+Client communication rule
+A case may not be marked Resolved unless one of the following is true:
+required client communication was sent,
+communication was reviewed and intentionally waived,
+communication is not required by policy for that case type.
+If communication is still pending
+The case must be:
+Partially Resolved, or
+remain in Action In Progress, depending on operational truth.
+Important implication
+This prevents the system from presenting internal stabilization as full experience completion.
+
+9. Final-status decision table
+Resolved
+Use when:
+the risk is removed
+required actions are complete
+communication obligations are satisfied
+Do not use when:
+anything material is still open
+
+Partially Resolved
+Use when:
+immediate risk is reduced
+but a meaningful dependency remains open
+Do not use when:
+the plan is still meaningfully unstable
+
+Failed
+Use when:
+the chosen or attempted path did not produce viability
+Do not use when:
+a valid recovery path is still actively underway
+
+Escalated
+Use when:
+the case moved beyond normal guided resolution scope
+Do not use when:
+no actual transfer of responsibility or authority occurred
+
+Archived
+Use when:
+the case already has a final truth
+and active work is fully over
+Do not use when:
+active follow-up still exists
+
+10. Allowed transition model
+Below is the recommended logic.
+Workflow-state transitions
+S0 → S1
+S1 → S0
+S1 → S2
+S2 → S3
+S2 → S4
+S2 → Recovery Required
+S3 → S4
+S3 → Recovery Required
+S4 → Resolved
+S4 → Partially Resolved
+S4 → Failed
+S4 → Escalated
+Recovery Required → Partially Resolved
+Recovery Required → Failed
+Recovery Required → Escalated
+Resolved → Archived
+Failed → Archived
+Escalated → Archived only after closed downstream
+Partially Resolved → Resolved
+Partially Resolved → Escalated
+Partially Resolved → Failed
+Partially Resolved → Archived only if converted to final closure state first
+
+11. Required evidence by final status
+Resolved — required evidence
+final stable plan recorded
+critical dependency check complete
+execution result logged
+communication status recorded
+Partially Resolved — required evidence
+mitigation recorded
+remaining open dependency recorded
+next follow-up owner or expectation recorded
+Failed — required evidence
+failure reason recorded
+attempted path recorded
+current unresolved condition recorded
+Escalated — required evidence
+escalation reason recorded
+receiving owner/team recorded
+handoff timestamp recorded
+Archived — required evidence
+final status already assigned
+no active follow-up items
+audit trail complete enough for review
+
+12. Required system flags
+To make this governance model implementable, the system should expose these boolean or structured flags:
+plan_is_trustworthy
+critical_dependency_open
+decision_required
+critical_window_active
+execution_started
+execution_complete
+partial_execution_detected
+manual_recovery_required
+communication_required
+communication_sent
+communication_waived
+case_has_final_status
+active_followup_open
+eligible_for_archive
+These will matter later in the data-contract layer.
+
+13. Screen-level status copy set
+You asked me not to forget the copy for all screens. For this deliverable, I am including the state-governance copy foundation that all screens can inherit.
+Stable Plan
+Headline: Arrival Plan Stable Body: All critical dependencies are aligned. No action is required right now.
+Risk Detected
+Headline: A Change Was Detected Body: The plan may still hold, but the updated situation should be reviewed.
+Decision Required
+Headline: The Current Plan Is No Longer Reliable Body: Review the recommended path and confirm the safest next step.
+Critical Intervention
+Headline: Immediate Action Required Body: The remaining time window is short. Act now to prevent service failure.
+Action In Progress
+Headline: Execution Underway Body: The selected path is being applied. Track progress, blockers, and updates here.
+Recovery Required
+Headline: Guided Resolution Is No Longer Sufficient Body: Manual recovery or escalation is now required.
+Resolved
+Headline: Arrival Stabilized Body: The plan is stable again and all required actions are complete.
+Partially Resolved
+Headline: Immediate Risk Reduced Body: The situation is more stable, but follow-up is still required.
+Failed
+Headline: Recovery Attempt Did Not Succeed Body: The selected path did not restore a viable arrival plan.
+Escalated
+Headline: Case Escalated Body: This case now requires intervention beyond the guided workflow.
+Archived
+Headline: Case Closed Body: This case has been removed from active operations. Full history remains available.
+
+14. Governance rules the UI must never violate
+Never show “Resolved” while communication is still required and pending.
+Never imply closure during Action In Progress.
+Never allow Archive to function as a substitute for unresolved truth.
+Never treat Escalated as visual closure.
+Never let Partially Resolved appear equivalent to Resolved.
+Never allow a final status without supporting log evidence.
+Never let a workflow state and outcome status contradict each other.
+
+15. Recommended implementation model
+For product clarity, each case object should contain:
+A. Workflow state
+Example: decision_required
+B. Outcome status
+Example: partially_resolved
+C. Communication status
+Example:
+not_required
+pending_review
+ready_to_send
+sent
+waived
+D. Archive status
+Example:
+active
+eligible
+archived
+This prevents one overloaded status field from doing too much.
+
+16. Final recommendation
+The project should stop using “Resolved” as both:
+a state-machine stage,
+and a final outcome label.
+That overlap is risky.
+The cleaner model is:
+Workflow layer
+Stable
+Risk
+Decision
+Critical
+In Progress
+Recovery Required
+Outcome layer
+Resolved
+Partially Resolved
+Failed
+Escalated
+Archived
+That separation will make every next deliverable stronger:
+data contracts,
+edge-case handling,
+ownership,
+handoff,
+communication,
+and UI behavior.

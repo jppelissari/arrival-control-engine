@@ -1,0 +1,1213 @@
+Data Contracts by Screen
+Project: The Arrival Control Engine Version: Blueprint Draft v1 Language: English
+
+1. Purpose of this deliverable
+This document translates the state model into screen-level product contracts.
+For each screen, it defines:
+purpose
+state coverage
+required data
+optional data
+derived data
+actions
+blocked actions
+empty states
+loading states
+error states
+exact screen copy
+This is the bridge between:
+product strategy,
+workflow logic,
+and UI implementation.
+The goal is to eliminate “designer interpretation gaps” and “developer guesswork.”
+
+2. Shared data model assumptions
+Before screen-by-screen specs, these are the shared entities the interface relies on.
+Core entities
+Case
+Client
+Arrival Plan
+Dependencies
+Recommendation
+Alternative Actions
+Execution Steps
+Communication Draft
+Activity Log
+Ownership / Lock Metadata
+Shared base fields
+These fields may appear across multiple screens.
+Case identity
+case_id
+case_reference
+created_at
+last_updated_at
+current_workflow_state
+current_outcome_status
+archive_status
+Client
+client_name
+client_profile_tier
+client_condition_notes
+preferred_contact_channel
+communication_availability
+Arrival summary
+arrival_date
+flight_number
+flight_status
+current_eta
+airport
+hotel_name
+hotel_readiness
+transfer_status
+assigned_driver
+contingency_plan_present
+Risk and urgency
+risk_score_total
+risk_band
+critical_window_active
+time_to_failure
+confidence_score
+stale_data_flag
+Ownership
+owner_name
+owner_role
+lock_status
+lock_holder
+handoff_pending
+Recommendation
+recommendation_id
+recommendation_title
+rationale_summary
+impact_summary
+cost_impact
+expected_outcome
+confidence_label
+Execution
+execution_status
+completed_steps
+pending_steps
+blocked_steps
+failed_steps
+Communication
+communication_required
+communication_status
+draft_message
+channel
+send_ready
+Audit
+log_entries
+system_actions
+user_actions
+last_recalculation_at
+
+3. Screen contracts
+
+Screen 1 — Arrivals Dashboard
+Purpose
+Primary triage surface for monitoring, prioritization, and entry into active cases.
+State coverage
+Stable Plan
+Risk Detected
+Decision Required
+Critical Intervention
+Action In Progress
+Recovery Required
+Resolved
+Partially Resolved
+Escalated
+Archived cases should not appear in the default dashboard view.
+Required data
+list of active cases
+case_id
+client_name
+arrival_date / time
+flight_number
+current_workflow_state
+current_outcome_status
+risk_band
+time_to_failure
+owner_name
+lock_status
+communication_status
+last_updated_at
+Optional data
+hotel_name
+airport
+transfer_status
+client tier
+confidence label
+unread activity indicator
+escalation badge
+Derived data
+priority ranking
+urgency sort order
+“needs attention now” flag
+stale case label
+“owned by me” vs “owned by others”
+“safe to ignore” suppression logic for green cases
+Actions
+open case
+filter by state
+filter by owner
+sort by urgency
+toggle focus mode
+search by client / case / flight
+view only critical cases
+view my cases
+acknowledge low-risk signal
+Blocked actions
+cannot resolve a case directly from the dashboard
+cannot execute recommendation from dashboard
+cannot archive from dashboard unless bulk admin behavior exists
+cannot override locked case from dashboard
+Empty state
+Condition
+No active cases match the current filter.
+Copy
+Headline: No Cases Require Attention Body: There are no active arrivals matching this view right now. Support text: Adjust filters or return to the full queue.
+Loading state
+Copy
+Headline: Loading Arrival Queue Body: Prioritizing active cases and refreshing live dependencies.
+Error state
+Condition
+Queue cannot load or live data refresh fails.
+Copy
+Headline: Unable to Load Arrival Queue Body: The case list could not be refreshed right now. Support text: Retry or continue with the most recent visible data if available.
+Exact screen copy
+Page title
+Arrival Control
+Dashboard header
+Today’s Arrival Queue
+Section labels
+Needs Attention
+In Progress
+Recently Stabilized
+Assigned to Me
+Case row example labels
+Stable
+Risk Detected
+Decision Required
+Critical
+In Progress
+Recovery Required
+Resolved
+Partially Resolved
+Escalated
+Locked
+Communication Pending
+Primary CTA
+Open Case
+Secondary CTAs
+Focus Mode
+View Critical Only
+Refresh Queue
+
+Screen 2 — Stable / Quiet State View
+Purpose
+Low-interruption case detail variant for cases that are stable and only require passive monitoring.
+State coverage
+Stable Plan
+Required data
+case_id
+client_name
+arrival summary
+flight status
+transfer status
+hotel readiness
+owner_name
+last_updated_at
+Optional data
+client notes
+contingency plan status
+communication history
+full dependency breakdown
+Derived data
+all-systems-aligned summary
+passive monitoring status
+no-action-needed indicator
+Actions
+view full details
+open activity log
+review client brief
+collapse back to dashboard
+Blocked actions
+execute recommendation
+confirm action
+escalate without change
+manual override unless permissions allow exceptional path
+Empty state
+Not applicable. This is a case view, not a list view.
+Loading state copy
+Headline: Loading Stable Arrival Body: Confirming current dependency health.
+Error state copy
+Headline: Stable View Unavailable Body: The latest case summary could not be loaded. Support text: Open the full case record or retry.
+Exact screen copy
+Title
+Arrival Plan Stable
+Summary copy
+Everything is aligned. No action is required right now.
+Secondary copy
+Monitoring continues in the background.
+Labels
+Flight
+Transfer
+Hotel
+Owner
+Last Updated
+CTA
+View Full Case
+
+Screen 3 — Arrival Detail / Situation Summary
+Purpose
+Transforms fragmented operational signals into a readable case summary.
+State coverage
+Risk Detected
+Decision Required
+Critical Intervention
+Required data
+case_id
+client_name
+flight_number
+flight_status
+current_eta
+original_plan_summary
+changed_variable
+impact_summary
+hotel_readiness
+transfer_status
+risk_band
+time_to_failure
+owner_name
+last_recalculation_at
+Optional data
+client condition notes
+supplier notes
+hotel notes
+contingency plan
+communication draft preview
+confidence score
+stale data warning
+Derived data
+what changed
+why it matters
+affected dependencies
+urgency message
+recommended next screen
+whether client-facing impact is likely
+Actions
+proceed to decision screen
+expand dependency details
+open activity log
+review communication draft
+acknowledge low-risk signal
+request takeover if locked
+Blocked actions
+cannot send communication directly unless communication module is surfaced
+cannot resolve case from situation summary
+cannot archive
+cannot execute final change without confirmation layer
+Empty state
+Condition
+Case has no meaningful change to summarize.
+Copy
+Headline: No Material Change Found Body: The case is active, but no meaningful disruption is available to summarize right now.
+Loading state
+Headline: Building Situation Summary Body: Reconstructing what changed and what it affects.
+Error state
+Headline: Unable to Build Case Summary Body: The system could not assemble a reliable summary of the current disruption. Support text: Open the full activity log or continue with manual review.
+Exact screen copy
+Title
+Situation Summary
+Primary headline
+A change was detected in this arrival plan.
+Summary section labels
+What Changed
+Why It Matters
+Affected Dependencies
+Risk Level
+Recommended Next Step
+Example impact copy
+The current plan may no longer support a smooth arrival. Review the updated situation before taking action.
+CTA set
+Review Recommended Action
+Open Activity Log
+View Full Dependencies
+
+Screen 4 — Decision Screen (Standard Variant / S2)
+Purpose
+Core decision surface for non-critical but active disruption handling.
+State coverage
+Decision Required
+Required data
+case_id
+client_name
+disruption_headline
+implication_summary
+recommendation_title
+recommendation_rationale
+expected_outcome
+confidence_label
+top alternatives
+risk_band
+cost_impact
+time_to_failure
+communication_required
+Optional data
+full comparison table
+hotel note
+supplier responsiveness note
+client condition note
+historical similar-case note
+expanded rationale
+confidence score numeric
+Derived data
+safest path
+consequence framing
+recommendation prominence
+alternative ordering
+suggested default action
+whether communication review should follow execution
+Actions
+execute recommendation
+view alternatives
+expand rationale
+review downstream consequences
+open activity log
+review client message preview
+Blocked actions
+cannot complete execution without confirmation
+cannot mark case resolved directly
+cannot archive
+cannot bypass confirmation for meaningful change
+cannot edit locked case if another operator controls it
+Empty state
+Condition
+Decision state entered but no viable recommendation is available.
+Copy
+Headline: No Safe Recommendation Available Body: The current disruption cannot be resolved through the guided path. Support text: Move to manual recovery or escalate the case.
+Loading state
+Headline: Preparing Decision Options Body: Evaluating the safest path based on current dependencies.
+Error state
+Headline: Decision Options Unavailable Body: The system could not generate a reliable recommendation right now. Support text: Retry, open manual recovery, or escalate.
+Exact screen copy
+Title
+Decision Required
+Main headline
+The current plan is no longer reliable.
+Recommendation section
+Recommended Action
+Supporting copy
+This is the safest available path based on current timing, dependency health, and expected arrival impact.
+Alternative section
+Alternative Paths
+Consequence section
+What Happens If You Choose This
+CTA set
+Execute Recommendation
+View Alternatives
+Review Rationale
+Open Activity Log
+
+Screen 5 — Decision Screen (Critical Variant / S3)
+Purpose
+Compressed, directive decision surface for high-risk, time-sensitive disruption handling.
+State coverage
+Critical Intervention
+Required data
+case_id
+disruption_headline
+critical_threshold_message
+recommendation_title
+recommendation_rationale_short
+time_to_failure
+critical urgency label
+one secondary path at most
+lock / ownership state
+Optional data
+confidence label
+cost impact
+communication consequence
+supplier dependency warning
+Derived data
+countdown / critical urgency signal
+dominant CTA
+reduced-option display
+visual suppression of non-essential context
+Actions
+confirm immediate action
+escalate
+open recovery path
+review minimal rationale
+request takeover if locked and permissions allow
+Blocked actions
+broad comparison browsing
+deep exploratory navigation
+archive
+direct resolution
+non-essential metadata editing
+Empty state
+Condition
+Critical state exists but no executable path is available.
+Copy
+Headline: Critical Case With No Safe Guided Action Body: Immediate manual recovery or escalation is required. Support text: The guided decision path is no longer sufficient.
+Loading state
+Headline: Loading Critical Action Surface Body: Compressing the case into the fastest safe decision path.
+Error state
+Headline: Critical Action Surface Unavailable Body: The system could not prepare the urgent decision view. Support text: Open recovery mode now.
+Exact screen copy
+Title
+Critical Intervention
+Main headline
+Immediate action is required.
+Critical support copy
+The remaining time window is short. Confirm the safest path now to prevent visible service failure.
+Recommendation section
+Act Now
+Secondary option label
+Other Available Path
+CTA set
+Confirm Action
+Escalate Case
+Open Recovery Mode
+
+Screen 6 — Alternative Selection
+Purpose
+Controlled comparison surface for expert override without encouraging excessive branching.
+State coverage
+Decision Required
+Critical Intervention
+Required data
+list of viable alternatives
+alternative title
+trade-off summary
+cost impact
+expected outcome
+risk impact
+expiry / validity window
+dependency impact
+Optional data
+rationale details
+supplier availability note
+communication consequence
+operational complexity note
+Derived data
+alternative ranking
+recommended vs non-recommended distinction
+time-sensitive expiration warnings
+Actions
+select alternative
+compare top two paths
+return to recommendation
+proceed to confirmation
+review consequence detail
+Blocked actions
+selecting expired alternative
+comparing more than the defined maximum if product rule limits it
+bypassing confirmation
+archiving or resolving from this screen
+Empty state
+Condition
+No alternatives are viable.
+Copy
+Headline: No Viable Alternatives Available Body: The recommended path is the only currently supported option. Support text: If that path is not acceptable, move to manual recovery.
+Loading state
+Headline: Loading Alternative Paths Body: Comparing remaining viable options.
+Error state
+Headline: Alternative Paths Unavailable Body: The system could not load comparison options right now. Support text: Return to the recommended path or open recovery mode.
+Exact screen copy
+Title
+Alternative Paths
+Main copy
+Review remaining viable options before overriding the recommended path.
+Section labels
+Recommended
+Alternative
+Trade-Offs
+Expected Impact
+Expires In
+CTA set
+Choose This Path
+Return to Recommendation
+Continue to Confirmation
+
+Screen 7 — Confirmation Layer
+Purpose
+Prevents execution errors by clearly restating what will change before commit.
+State coverage
+Decision Required
+Critical Intervention
+Required data
+selected action title
+exact changes that will be applied
+affected dependencies
+communication consequence
+cost impact
+operator identity
+lock ownership
+confirmation timestamp target
+Optional data
+client-visible impact note
+rollback note
+audit note field
+override reason input
+Derived data
+final execution summary
+risk acknowledgment
+whether additional comment is required
+Actions
+confirm action
+cancel
+go back
+add reason note
+switch to manual recovery if applicable
+Blocked actions
+cannot edit upstream logic extensively from modal
+cannot archive
+cannot resolve
+cannot send communication unless bundled in confirmed step logic
+Empty state
+Not applicable.
+Loading state
+Headline: Preparing Confirmation Body: Finalizing the exact changes that will be applied.
+Error state
+Headline: Confirmation Unavailable Body: The final change summary could not be prepared. Support text: Go back and retry before applying any action.
+Exact screen copy
+Modal title
+Confirm Action
+Primary body copy
+Review the exact changes below before execution.
+Summary labels
+You Are About to
+Affected Dependencies
+Client Communication
+Cost Impact
+Execution Owner
+CTA set
+Confirm and Continue
+Go Back
+Cancel
+
+Screen 8 — Action Progress
+Purpose
+Shows execution progress after a decision is made.
+State coverage
+Action In Progress
+Required data
+execution_status
+list of execution steps
+completed_steps
+pending_steps
+blocked_steps
+failed_steps
+current owner
+last update time
+communication status
+Optional data
+supplier response note
+retry availability
+countdown to next checkpoint
+downstream consequence note
+Derived data
+percent complete
+blocker summary
+execution health
+ready-for-resolution flag
+partial-success flag
+Actions
+view details per step
+retry failed step where allowed
+open activity log
+send / review communication if available
+escalate
+move to recovery mode
+Blocked actions
+cannot mark resolved until completion rules are satisfied
+cannot archive
+cannot start competing execution path without invalidating current one
+cannot override locked step without permissions
+Empty state
+Condition
+No execution steps are available after a confirmed action.
+Copy
+Headline: No Execution Steps Available Body: The action was confirmed, but no downstream execution steps were returned. Support text: Open recovery mode or review the audit log.
+Loading state
+Headline: Applying Selected Path Body: Updating dependent systems and tracking downstream progress.
+Error state
+Headline: Progress View Unavailable Body: Execution updates could not be refreshed right now. Support text: Continue with the last known status or open recovery mode.
+Exact screen copy
+Title
+Action In Progress
+Main headline
+The selected path is being executed.
+Section labels
+Completed
+Pending
+Blocked
+Failed
+Communication Status
+Last Update
+CTA set
+Open Activity Log
+Retry Step
+Escalate Case
+Open Recovery Mode
+
+Screen 9 — Resolution Summary
+Purpose
+Provides truthful closure after stabilization.
+State coverage
+Resolved
+Partially Resolved
+Required data
+final outcome status
+summary of what changed
+final stable plan summary
+open dependencies if partially resolved
+communication status
+owner
+closure timestamp
+audit summary
+Optional data
+cost summary
+client impact summary
+follow-up owner
+linked activity log
+next checkpoint reminder
+Derived data
+closure truth
+whether case is fully done or partially done
+archive eligibility
+follow-up needed label
+Actions
+archive if eligible
+reopen case
+open full log
+review communication history
+assign follow-up
+Blocked actions
+cannot archive if communication is still pending and required
+cannot present “resolved” copy if status is partial
+cannot hide open dependencies in partial status
+Empty state
+Condition
+No resolution summary can yet be generated.
+Copy
+Headline: Resolution Summary Not Ready Body: The case does not yet meet the criteria for closure.
+Loading state
+Headline: Building Resolution Summary Body: Verifying final status, execution results, and communication requirements.
+Error state
+Headline: Unable to Build Resolution Summary Body: Final closure details could not be assembled reliably. Support text: Review the audit log before closing the case.
+Exact screen copy
+Title (Resolved)
+Arrival Stabilized
+Resolved body copy
+The plan is stable again and all required actions are complete.
+Title (Partially Resolved)
+Immediate Risk Reduced
+Partially resolved body copy
+The case is more stable, but follow-up is still required before full closure.
+Section labels
+Final Outcome
+What Changed
+Current Plan
+Communication
+Open Follow-Up
+Audit Summary
+CTA set
+Archive Case
+Reopen Case
+Open Full Log
+Assign Follow-Up
+
+Screen 10 — Escalation / Failure Recovery
+Purpose
+Structured recovery surface when guided flow is no longer sufficient.
+State coverage
+Recovery Required
+Escalated
+Failed
+Required data
+failure or escalation reason
+failed dependency
+current blocker
+current owner
+escalation target if defined
+manual recovery options
+last successful step
+communication requirement
+Optional data
+supplier contact note
+system confidence note
+stale data warning
+linked fallback plan
+retry support
+Derived data
+whether escalation is required
+whether retry is safe
+recommended recovery branch
+handoff necessity
+Actions
+escalate case
+open manual override
+retry allowed path
+assign handoff
+review fallback plan
+open log
+Blocked actions
+cannot mark resolved
+cannot archive
+cannot suppress failure reason
+cannot return to guided path without revalidation
+Empty state
+Condition
+Recovery screen opened without defined recovery branch.
+Copy
+Headline: No Recovery Path Available Body: The case requires intervention, but no structured recovery branch is available. Support text: Escalate immediately or continue manually.
+Loading state
+Headline: Preparing Recovery Options Body: Evaluating what remains viable outside the guided path.
+Error state
+Headline: Recovery Options Unavailable Body: The system could not prepare the recovery surface. Support text: Open the audit log and continue with manual handling.
+Exact screen copy
+Title
+Recovery Required
+Main headline
+The guided path is no longer sufficient.
+Supporting copy
+Manual recovery or escalation is now required to protect the arrival outcome.
+Section labels
+What Failed
+What Is Blocked
+Recovery Options
+Escalation Path
+Fallback Plan
+CTA set
+Escalate Case
+Open Manual Override
+Retry Allowed Path
+Open Activity Log
+
+Screen 11 — Manual Override
+Purpose
+Allows an authorized operator to take direct control outside the guided recommendation path.
+State coverage
+Recovery Required
+Decision Required
+Critical Intervention
+Escalated
+Required data
+case_id
+current owner
+lock state
+override permission state
+override action input
+override reason
+impacted dependency selection
+required comment field
+confirmation requirement
+Optional data
+supplier note
+cost estimate
+client impact note
+communication requirement preview
+Derived data
+override risk label
+requires supervisor review flag
+audit severity
+post-override next state
+Actions
+enter override action
+add reason
+submit override
+cancel
+request approval if required
+Blocked actions
+override without reason
+override if user lacks permission
+override locked case without takeover
+archive
+resolve directly without validation rules
+Empty state
+Not applicable.
+Loading state
+Headline: Loading Manual Override Body: Preparing direct-control mode and audit requirements.
+Error state
+Headline: Manual Override Unavailable Body: Direct control mode could not be opened. Support text: Request escalation or retry.
+Exact screen copy
+Title
+Manual Override
+Main copy
+Use direct control only when the guided path is no longer appropriate.
+Warning copy
+All override actions are recorded in the audit log. A reason is required.
+Field labels
+Override Action
+Reason for Override
+Affected Dependency
+Expected Outcome
+Communication Impact
+CTA set
+Submit Override
+Cancel
+Request Approval
+
+Screen 12 — Activity Log / Audit Timeline
+Purpose
+Provides traceable, chronological truth of system and user actions.
+State coverage
+all non-archived states
+archived view allowed in read-only mode
+Required data
+log entries
+event timestamp
+actor type
+actor name
+action summary
+event type
+state transitions
+communication events
+override events
+recalculation events
+Optional data
+raw payload details
+expanded technical metadata
+linked dependency IDs
+Derived data
+grouped timeline
+user vs system action distinction
+last meaningful change
+unresolved issue indicator
+Actions
+expand event details
+filter by actor type
+filter by event type
+jump to latest
+export audit if supported
+Blocked actions
+cannot edit log
+cannot delete log
+cannot resolve case from log alone
+cannot archive from log unless explicitly allowed elsewhere
+Empty state
+Condition
+No activity has been recorded yet.
+Copy
+Headline: No Activity Recorded Yet Body: Events will appear here as the system monitors, recommends, and executes actions.
+Loading state
+Headline: Loading Activity Log Body: Reconstructing the event history for this case.
+Error state
+Headline: Activity Log Unavailable Body: The event history could not be loaded right now.
+Exact screen copy
+Title
+Activity Log
+Supporting copy
+This timeline shows what the system did, what the operator decided, and when the case changed.
+Filters
+All Events
+System
+Operator
+Communication
+State Changes
+Failures
+CTA
+Jump to Latest
+
+Screen 13 — Notification Preview / Client Message Review
+Purpose
+Allows outbound communication to be reviewed before sending when communication is required or recommended.
+State coverage
+Decision Required
+Critical Intervention
+Action In Progress
+Resolved
+Partially Resolved
+Required data
+communication_required
+communication_status
+channel
+draft_message
+trigger reason
+case summary
+send eligibility
+owner
+Optional data
+alternate channel
+personalization fields
+communication history
+approval requirement
+Derived data
+ready-to-send status
+required vs optional communication label
+message reason
+“blocking closure” indicator
+Actions
+review message
+edit message if allowed
+approve message
+send message
+waive communication if policy allows
+return to case
+Blocked actions
+cannot send when required fields are missing
+cannot waive when communication is policy-required
+cannot mark resolved while required communication is pending
+cannot send locked draft if approval state blocks it
+Empty state
+Condition
+No draft exists yet.
+Copy
+Headline: No Message Draft Available Body: A client-facing update has not been generated yet. Support text: Generate a draft or continue without communication if policy allows.
+Loading state
+Headline: Preparing Client Update Body: Building a reviewable message from the latest case changes.
+Error state
+Headline: Message Preview Unavailable Body: The client update could not be prepared right now. Support text: Draft manually or return to the case.
+Exact screen copy
+Title
+Client Message Review
+Main copy
+Review what the client will be told before sending the update.
+Warning copy
+Required communication must be completed or waived before full closure.
+Section labels
+Channel
+Message Draft
+Why This Message Is Needed
+Status
+Approval
+CTA set
+Send Update
+Approve and Send
+Edit Draft
+Waive Communication
+Return to Case
+
+Screen 14 — Multi-Case Priority Queue / Focus Mode
+Purpose
+Compressed attention-management surface for handling multiple competing disruptions.
+State coverage
+Decision Required
+Critical Intervention
+Recovery Required
+Required data
+prioritized case list
+risk band
+time to failure
+owner state
+lock state
+current step / current blocker
+communication pending indicator
+Optional data
+client tier
+airport / hotel
+stale data label
+escalation badge
+Derived data
+top priority case
+“handle first” recommendation
+overload signal
+queue health summary
+Actions
+open top case
+switch between cases
+claim case
+filter critical only
+open dashboard
+Blocked actions
+cannot execute multi-case actions in batch unless designed explicitly
+cannot resolve from queue
+cannot compare deep details without opening case
+Empty state
+Condition
+No urgent cases require focus mode.
+Copy
+Headline: No Cases Need Focus Mode Body: There are no competing high-priority disruptions right now.
+Loading state
+Headline: Prioritizing Critical Cases Body: Ranking urgent arrivals by failure risk and remaining time window.
+Error state
+Headline: Focus Queue Unavailable Body: Critical case prioritization could not be loaded right now.
+Exact screen copy
+Title
+Focus Queue
+Main copy
+These are the cases most likely to fail first if left unattended.
+Section labels
+Handle First
+Critical Cases
+Decision Required
+Recovery Required
+CTA set
+Open Top Case
+Claim Case
+Return to Dashboard
+
+Screen 15 — Ownership / Lock / Conflict State
+Purpose
+Makes collaboration logic visible when another operator owns or controls the case.
+State coverage
+any active state where lock or handoff exists
+Required data
+lock_status
+lock_holder
+lock_reason
+ownership_status
+handoff_pending
+last_actor
+editable vs non-editable sections
+Optional data
+takeover eligibility
+supervisor note
+handoff ETA
+Derived data
+read-only mode
+conflict severity
+allowable next actions
+takeover path
+Actions
+request takeover
+acknowledge read-only mode
+view owner details
+open activity log
+continue read-only
+Blocked actions
+editing locked fields
+confirming actions in locked case without permission
+manual override without takeover
+archiving if not eligible
+Empty state
+Not applicable.
+Loading state
+Headline: Checking Case Ownership Body: Verifying lock state, edit permissions, and handoff status.
+Error state
+Headline: Ownership Status Unavailable Body: The system could not confirm who currently controls this case. Support text: Continue in read-only mode or retry.
+Exact screen copy
+Title
+Case Controlled by Another Operator
+Main copy
+This case is currently locked to prevent conflicting actions.
+Supporting copy
+You can continue in read-only mode or request takeover if intervention is required.
+Labels
+Current Owner
+Lock Reason
+Editable Sections
+Takeover Status
+CTA set
+Request Takeover
+Continue Read-Only
+Open Activity Log
+
+Screen 16 — Recalculation / Invalidation Interruption State
+Purpose
+Protects the operator from acting on stale decision logic after the case changes mid-review.
+State coverage
+Decision Required
+Critical Intervention
+Confirmation Layer
+Action In Progress if plan invalidation occurs
+Required data
+recalculation_trigger
+previous recommendation
+invalidated action label
+what changed
+why previous path is no longer valid
+latest recommendation if available
+recalculation timestamp
+Optional data
+confidence drop explanation
+affected dependency details
+client signal note
+supplier signal note
+Derived data
+invalidation status
+updated decision path
+whether current screen should hard-block further action
+Actions
+review updated path
+reopen decision
+move to recovery mode
+acknowledge invalidation
+Blocked actions
+confirm outdated action
+send outdated communication
+continue stale execution path without explicit override
+mark resolved
+Empty state
+Not applicable.
+Loading state
+Headline: Refreshing Case Logic Body: The current case changed while you were reviewing it.
+Error state
+Headline: Updated Case Logic Unavailable Body: The case changed, but the new decision path could not be prepared. Support text: Open recovery mode or review the activity log.
+Exact screen copy
+Title
+Case Updated
+Main copy
+This case changed while you were reviewing it. The previous action is no longer valid.
+Supporting copy
+Review the updated recommendation before continuing.
+Section labels
+What Changed
+Why the Previous Path Was Invalidated
+Updated Recommendation
+Last Recalculated
+CTA set
+Review Updated Path
+Open Recovery Mode
+View Activity Log
+
+4. Cross-screen copy rules
+These rules should be enforced across the interface.
+Rule 1
+Never use “Resolved” copy while:
+communication is still required and pending
+a meaningful dependency remains open
+the system is still in Action In Progress
+Rule 2
+Never use vague language like:
+“Everything is okay”
+“Issue handled”
+“Done” without operational truth behind it.
+Rule 3
+When risk increases, copy becomes:
+shorter
+more directive
+less interpretive
+Rule 4
+When the system lacks confidence, copy must say so clearly:
+Recommendation confidence is low
+No safe recommendation is available
+Manual recovery is required
+Rule 5
+When a case is partially resolved, the screen must name the remaining open dependency explicitly.
+
+5. Minimum implementation notes
+To make these screens buildable, every screen should support:
+Universal UI states
+default
+empty
+loading
+error
+locked
+stale data
+read-only
+permission-restricted
+Universal metadata footer
+Recommended for every case-level screen:
+Owner
+Last Updated
+Last Recalculated
+Communication Status
+Lock Status
+
+6. Final recommendation
+The minimum believable MVP surface for this product is not just:
+dashboard,
+detail,
+decision,
+confirmation,
+progress,
+resolution.
+It also requires:
+communication review,
+recovery,
+lock/conflict visibility,
+and recalculation interruption.
+Without those, the product looks intelligent but behaves incompletely.

@@ -1,0 +1,860 @@
+Primary Exception Flows
+Project: The Arrival Control Engine Version: Blueprint Draft v1 Language: English
+
+1. Purpose of this deliverable
+This document converts the five highest-risk exception scenarios into full product flow contracts.
+These are not “edge notes.” These are primary product behaviors that must be designed, specified, and implemented as first-class flows.
+Each flow includes:
+why it exists
+trigger
+system conditions
+risk
+required behavior
+screen sequence
+data requirements
+action rules
+transition logic
+exact screen copy
+failure prevention notes
+
+2. The 5 primary exception flows
+Recalculation During Decision
+Partial Success
+No Safe Recommendation
+Operator Conflict / Lock
+Communication Pending at Closure
+These five flows were selected because they are the most likely to produce:
+false confidence,
+inconsistent operator behavior,
+UI ambiguity,
+and operational failure disguised as progress.
+
+Flow 1 — Recalculation During Decision
+
+A. Why this flow exists
+The system is designed for live, changing operational conditions. That means the case may change while the operator is reviewing a recommendation, comparing alternatives, or sitting inside the confirmation layer.
+If the interface allows the operator to continue acting on stale logic, the product becomes dangerous.
+This flow exists to prevent:
+execution of invalidated actions
+stale communication
+confidence collapse
+hidden race conditions
+
+B. Trigger
+This flow is triggered when:
+a live dependency changes,
+a client signal arrives,
+a supplier update changes feasibility,
+or the system recalculates the case while the operator is in a decision-making surface.
+Typical examples:
+flight delay increases past transfer viability
+client message changes the plan context
+hotel readiness drops
+driver availability changes
+baggage issue changes arrival timing
+another operator updates a dependency that alters the decision logic
+
+C. Entry conditions
+This flow can begin from:
+Decision Screen (S2)
+Critical Intervention Screen (S3)
+Alternative Selection
+Confirmation Layer
+Required precondition:
+the user is reviewing or preparing to commit an action based on a prior case version
+
+D. Risk
+If this flow is not handled correctly, the system may:
+allow invalid execution
+send incorrect communication
+duplicate conflicting actions
+undermine trust in recommendations
+create visible client failure through false action confidence
+This is a high-severity flow.
+
+E. Governing rule
+Once the case is recalculated and the previous decision is no longer valid:
+The system must:
+block stale confirmation
+invalidate the previous action visibly
+explain what changed
+explain why the previous path is no longer valid
+route the operator to the updated decision path or recovery path
+The system must never silently refresh and leave the operator guessing.
+
+F. Canonical flow sequence
+Step 1 — Operator is reviewing an action
+Screen:
+Decision Screen
+Alternative Selection
+or Confirmation Layer
+Step 2 — New signal enters the case
+Examples:
+flight delay worsens
+client message arrives
+supplier confirms unavailability
+Step 3 — Case recalculates
+System compares:
+prior decision validity
+current dependency graph
+current urgency
+recommendation confidence
+Step 4 — Previous path is invalidated
+If invalidation threshold is met:
+old CTA is disabled
+screen is interrupted
+invalidation state takes over
+Step 5 — Operator sees interruption state
+Screen:
+Recalculation / Invalidation Interruption State
+Step 6 — Operator chooses next path
+Possible actions:
+review updated recommendation
+move to recovery mode
+open activity log
+request takeover if another operator caused change
+Step 7 — New state assignment
+Possible transitions:
+back to S2 with updated recommendation
+to S3 if urgency escalated
+to Recovery Required if no safe path remains
+
+G. Screen sequence
+Decision Screen / Confirmation Layer
+Recalculation detected in background
+Interruption overlay or hard redirect
+Updated Situation Summary or Updated Decision Screen
+Confirmation or Recovery
+
+H. Required data
+Required event payload
+recalculation_trigger_type
+recalculation_timestamp
+changed_variable
+changed_variable_previous_value
+changed_variable_new_value
+invalidated_action_id
+invalidation_reason
+updated_recommendation_id if available
+updated_risk_band
+updated_time_to_failure
+updated_confidence_label
+Required UI fields
+what changed
+why prior action is invalid
+whether urgency increased
+whether updated recommendation exists
+whether manual recovery is now required
+
+I. Allowed actions
+review updated path
+open activity log
+open recovery mode
+acknowledge invalidation
+request takeover if ownership conflict exists
+
+J. Blocked actions
+confirm outdated action
+continue stale execution
+send prior communication draft
+mark case resolved
+archive case
+
+K. State transitions
+Common transitions
+S2 → S2 (updated recommendation)
+S2 → S3
+S2 → Recovery Required
+S3 → S3 (updated critical path)
+S3 → Recovery Required
+Confirmation Layer → S2
+Confirmation Layer → S3
+Confirmation Layer → Recovery Required
+
+L. Exact screen copy
+Interruption title
+Case Updated
+Primary message
+This case changed while you were reviewing it. The previous action is no longer valid.
+Secondary message
+Review the updated recommendation before continuing.
+Section labels
+What Changed
+Why the Previous Path Was Invalidated
+Updated Recommendation
+Last Recalculated
+CTA set
+Review Updated Path
+Open Recovery Mode
+View Activity Log
+Alternative low-confidence copy
+The case changed, but no safe guided action is currently available. Move to recovery mode.
+
+M. Failure prevention rules
+Recalculation must hard-block stale confirmation.
+Previous CTA must visibly disable; not disappear silently.
+Prior communication draft must be invalidated if it relies on outdated case logic.
+Updated recommendation must be timestamped.
+If the recalculation was triggered by another operator’s action, that must be visible in the log.
+
+Flow 2 — Partial Success
+
+A. Why this flow exists
+Not all execution paths fail cleanly or succeed cleanly.
+In real operations:
+one dependency updates
+another stays pending
+another fails
+communication may lag behind
+the arrival may become more stable, but not fully stable
+This flow exists to prevent the system from falsely presenting partial stabilization as full closure.
+
+B. Trigger
+This flow is triggered when:
+a confirmed action produces mixed execution outcomes
+Examples:
+transfer successfully rescheduled, hotel update still pending
+backup driver confirmed, client message unsent
+supplier update succeeded, room readiness still unresolved
+one step completes, another times out or fails
+
+C. Entry conditions
+This flow begins from:
+Action In Progress
+Required precondition:
+at least one critical execution step completed
+at least one meaningful execution step remains open, blocked, or failed
+
+D. Risk
+If not handled correctly, the system may:
+label the case Resolved too early
+hide open operational exposure
+understate communication needs
+create false reassurance for the operator
+This is a high-frequency, medium-to-high severity flow.
+
+E. Governing rule
+Partial progress is not closure.
+A case may become Partially Resolved only when:
+immediate risk has been materially reduced
+the plan is more stable than before
+the remaining open dependency is explicitly visible
+the remaining exposure does not currently require emergency action
+If those conditions are not met, the case stays in:
+Action In Progress
+or Recovery Required
+
+F. Canonical flow sequence
+Step 1 — Operator confirms action
+Case enters:
+Action In Progress
+Step 2 — Execution proceeds
+System tracks:
+completed
+pending
+blocked
+failed steps
+Step 3 — Mixed result emerges
+Example:
+transfer updated successfully
+hotel readiness confirmation still missing
+Step 4 — System classifies result
+System evaluates:
+was the immediate risk materially reduced?
+is the arrival still exposed?
+is the case still critical?
+is communication still required?
+Step 5 — Outcome decision
+Possible result:
+remain Action In Progress
+move to Partially Resolved
+move to Recovery Required
+move to Failed
+Step 6 — Resolution Summary appears
+If Partially Resolved:
+open dependency must be named
+follow-up requirement must be visible
+archive must remain blocked
+
+G. Screen sequence
+Confirmation Layer
+Action In Progress
+Mixed execution result detected
+Partial-success evaluation
+Resolution Summary (Partially Resolved) or Recovery Required
+
+H. Required data
+Execution data
+execution_step_list
+execution_step_statuses
+completed_steps
+pending_steps
+blocked_steps
+failed_steps
+Outcome data
+immediate_risk_reduced_flag
+open_dependency_description
+communication_required
+communication_status
+final_outcome_candidate
+UI-required fields
+what succeeded
+what remains open
+whether current risk is still active
+whether follow-up is required
+whether archive is blocked
+
+I. Allowed actions
+review partial outcome
+assign follow-up
+continue monitoring
+retry allowed step
+escalate
+open recovery mode
+review communication
+
+J. Blocked actions
+mark as Resolved if material dependency remains open
+archive case
+suppress open follow-up
+hide communication pending status if relevant
+
+K. State transitions
+Common transitions
+S4 → Partially Resolved
+S4 → Recovery Required
+S4 → Failed
+Partially Resolved → Resolved
+Partially Resolved → Escalated
+Partially Resolved → Failed
+
+L. Exact screen copy
+Status title
+Immediate Risk Reduced
+Primary message
+The case is more stable, but follow-up is still required before full closure.
+Open dependency label
+Still Open
+Explanation copy
+At least one important dependency remains unresolved. This case cannot be fully closed yet.
+CTA set
+Assign Follow-Up
+Open Recovery Mode
+Review Communication
+Open Activity Log
+Archive warning
+This case cannot be archived while meaningful follow-up is still open.
+
+M. Failure prevention rules
+Partially Resolved must not inherit the visual calm of Resolved.
+Open dependency must be named explicitly.
+Communication pending must stay visible if it blocks true closure.
+Archive must remain unavailable.
+If partial success still leaves critical risk active, the case must not enter Partially Resolved.
+
+Flow 3 — No Safe Recommendation
+
+A. Why this flow exists
+The system will not always be able to recommend a safe path with acceptable confidence.
+That can happen when:
+inputs are contradictory
+too many dependencies are unstable
+available alternatives are not viable
+risk changes faster than the model can safely support
+a path exists, but not one the product can responsibly recommend
+This flow exists to ensure the product is honest when guidance is insufficient.
+
+B. Trigger
+This flow is triggered when:
+recommendation engine returns no valid path
+confidence falls below minimum threshold
+all available options violate operational safeguards
+dependency trust is too low to support recommendation
+
+C. Entry conditions
+Can begin from:
+Situation Summary
+Decision Required
+Critical Intervention
+Recalculation flow
+Preconditions:
+disruption is real
+case requires intervention
+no guidance path meets safety or confidence rules
+
+D. Risk
+If handled badly, the system will:
+fake certainty
+surface weak guidance as authority
+encourage dangerous execution
+destroy trust in the product
+This is a very high-severity flow.
+
+E. Governing rule
+The product must prefer honest insufficiency over false intelligence.
+When no safe recommendation exists:
+the system must say so clearly
+it must stop pretending the decision engine is in control
+it must route the operator into recovery or escalation logic
+it must explain why recommendation is unavailable
+
+F. Canonical flow sequence
+Step 1 — Case enters decision territory
+State:
+S2 or S3
+Step 2 — Recommendation engine evaluates options
+System checks:
+viability
+confidence
+dependency stability
+policy constraints
+Step 3 — No valid path qualifies
+System fails safe
+Step 4 — No Safe Recommendation state appears
+This may appear:
+inside Decision Screen as empty/blocked state
+or as full-screen recovery redirect depending on urgency
+Step 5 — Operator chooses next path
+Actions:
+open manual recovery
+escalate
+inspect activity log
+inspect contributing blockers
+Step 6 — Case transition
+Possible states:
+Recovery Required
+Escalated
+
+G. Screen sequence
+Situation Summary / Decision Screen
+Recommendation attempt
+No Safe Recommendation state
+Recovery Required or Escalation path
+
+H. Required data
+Required logic outputs
+recommendation_available_flag = false
+no_safe_recommendation_reason
+confidence_below_threshold_flag
+unstable_dependencies
+criticality_level
+escalation_recommended_flag
+UI-required fields
+why recommendation is unavailable
+whether urgency is critical
+what the operator should do next
+whether escalation is recommended
+
+I. Allowed actions
+open manual recovery
+escalate case
+view blockers
+open activity log
+request senior review if applicable
+
+J. Blocked actions
+execute recommended action
+continue standard confirmation flow
+mark case resolved
+archive
+send communication based on unsupported plan unless manual logic takes over
+
+K. State transitions
+Common transitions
+S2 → Recovery Required
+S2 → Escalated
+S3 → Recovery Required
+S3 → Escalated
+Recalculation Flow → Recovery Required
+
+L. Exact screen copy
+Title
+No Safe Recommendation Available
+Primary message
+The system cannot recommend a guided action for this case with acceptable confidence.
+Secondary message
+Continue through manual recovery or escalate the case.
+Reason section label
+Why Guided Resolution Is Unavailable
+CTA set
+Open Recovery Mode
+Escalate Case
+View Activity Log
+Critical urgency variant
+This case still requires immediate attention, but the guided path is no longer safe to use.
+
+M. Failure prevention rules
+Do not soften this state with optimistic language.
+Do not display a weak “recommended” action alongside this state.
+Confidence insufficiency must be explicit, not implied.
+Recovery path must be immediate and obvious.
+If urgency is critical, escalation must be visually prominent.
+
+Flow 4 — Operator Conflict / Lock
+
+A. Why this flow exists
+This product is designed for real operational environments, not single-user fantasy.
+That means:
+another operator may already own the case
+another operator may lock a dependency
+a handoff may be pending
+a supervisor may have taken control
+the same case may attract simultaneous attention in a critical moment
+This flow exists to prevent conflicting actions and silent collisions.
+
+B. Trigger
+Triggered when:
+another operator owns the case and active edit lock is present
+a dependency required for current action is locked by another user
+a takeover is pending
+a handoff is incomplete
+operator attempts action in read-only scope
+
+C. Entry conditions
+Can begin from:
+Dashboard
+Situation Summary
+Decision Screen
+Critical Intervention
+Confirmation Layer
+Manual Override
+Precondition:
+the current user attempts or approaches an action requiring edit authority
+
+D. Risk
+If mishandled, the system may:
+allow conflicting execution
+duplicate updates
+overwrite decisions
+create audit confusion
+slow down real recovery in urgent moments
+This is a high-severity multi-actor flow.
+
+E. Governing rule
+When ownership conflict exists, the system must make control visible.
+It must clearly answer:
+who owns this case
+what is locked
+why it is locked
+what the current user can still do
+how takeover works
+The system must never let the user discover conflict only after attempting a critical action.
+
+F. Canonical flow sequence
+Step 1 — User opens case
+Case appears normal or near-normal initially
+Step 2 — System evaluates ownership and lock scope
+Checks:
+case ownership
+dependency-level locks
+handoff status
+permission scope
+Step 3 — User reaches editable surface
+Example:
+execute recommendation
+submit override
+confirm action
+Step 4 — Conflict state is surfaced
+System shows:
+current owner
+lock reason
+read-only scope
+takeover path if available
+Step 5 — User chooses next path
+Actions:
+continue read-only
+request takeover
+wait for handoff
+open activity log
+escalate coordination issue if needed
+Step 6 — Outcome
+Possible result:
+remain read-only
+takeover granted, case becomes editable
+case reassigned
+escalation of ownership issue
+
+G. Screen sequence
+Any case-level screen
+Lock or conflict detection
+Ownership / Lock / Conflict State
+Read-only continuation or takeover request
+Editable return after reassignment if granted
+
+H. Required data
+Ownership data
+current_owner_name
+current_owner_role
+lock_status
+lock_scope
+lock_reason
+handoff_pending_flag
+last_actor
+takeover_allowed_flag
+UI-required fields
+who controls the case
+whether current user can edit
+which sections are blocked
+how to request control
+
+I. Allowed actions
+continue read-only
+request takeover
+view owner details
+open activity log
+contact escalation path if configured
+
+J. Blocked actions
+confirm action without control
+submit override without control
+edit locked dependency
+archive if not eligible
+resolve if edit authority is required and absent
+
+K. State transitions
+This flow does not always change the workflow state of the case, but it changes the user’s action state.
+Possible status behaviors
+any active state + lock overlay
+handoff pending
+takeover requested
+ownership transferred
+escalation if ownership conflict blocks recovery
+
+L. Exact screen copy
+Title
+Case Controlled by Another Operator
+Primary message
+This case is currently locked to prevent conflicting actions.
+Secondary message
+You can continue in read-only mode or request takeover if intervention is required.
+Section labels
+Current Owner
+Lock Reason
+Editable Sections
+Takeover Status
+CTA set
+Request Takeover
+Continue Read-Only
+Open Activity Log
+Urgent variant
+This case is urgent, but action is currently restricted by ownership control. Request takeover or escalate immediately.
+
+M. Failure prevention rules
+Lock status must be visible before the final confirmation step.
+Read-only mode must be explicit.
+Blocked controls must explain why they are blocked.
+Takeover flow must be short and clear.
+If urgency is critical and no owner is acting, escalation path must be available.
+
+Flow 5 — Communication Pending at Closure
+
+A. Why this flow exists
+A case can become operationally stable before it becomes experientially complete.
+That is the exact moment where many internal tools lie:
+operations are fixed
+but the client has not been informed
+or communication is still under review
+or sending the message is required by policy
+This flow exists to stop the product from declaring closure too early.
+
+B. Trigger
+Triggered when:
+execution is complete or mostly complete
+closure is being evaluated
+communication is still pending
+and communication is required or policy-relevant
+Typical examples:
+transfer has been rebooked but client has not been updated
+room readiness issue resolved, but reassurance message still pending
+critical disruption stabilized internally, but client-facing update not yet sent
+
+C. Entry conditions
+Can begin from:
+Action In Progress
+Resolution evaluation
+Resolution Summary
+Partially Resolved summary
+Preconditions:
+operational stabilization is true or nearly true
+communication_required = true
+communication_status is not complete
+outcome classification is being attempted
+
+D. Risk
+If mishandled, the system may:
+mark the case Resolved too early
+imply that the experience is complete when it is not
+remove the case from active view before client communication is handled
+weaken service trust even when internal operations succeeded
+This is a high-severity closure integrity flow.
+
+E. Governing rule
+When required communication is still pending:
+The case must not be marked Resolved.
+Instead, the product must:
+remain in Action In Progress
+or move to Partially Resolved depending on the operational truth.
+Resolved is only allowed when communication obligations are:
+completed,
+waived,
+or explicitly not required.
+
+F. Canonical flow sequence
+Step 1 — Execution reaches stable operational outcome
+System detects:
+risk removed
+plan stable enough for closure review
+Step 2 — Closure evaluation runs
+System checks:
+communication_required
+communication_status
+waiver status
+policy constraints
+Step 3 — Communication pending detected
+System blocks full closure
+Step 4 — Communication review state appears
+Screen:
+Notification Preview / Client Message Review
+or Resolution Summary with blocking communication warning
+Step 5 — Operator chooses path
+Possible actions:
+send communication
+approve and send
+waive if allowed
+return to case
+assign communication follow-up
+Step 6 — Outcome assignment
+Possible result:
+Resolved after communication completed
+Partially Resolved if communication remains meaningfully pending
+stay Action In Progress if communication is part of immediate execution path
+
+G. Screen sequence
+Action In Progress or Resolution evaluation
+Communication requirement check
+Notification Preview / Client Message Review
+Resolution Summary (Resolved or Partially Resolved depending on outcome)
+
+H. Required data
+Required communication fields
+communication_required
+communication_status
+send_ready
+communication_waived
+communication_channel
+draft_message
+closure_block_reason
+UI-required fields
+why communication matters here
+whether closure is blocked
+what the operator needs to do next
+whether waiver is allowed
+
+I. Allowed actions
+review message
+edit message if allowed
+approve and send
+send
+waive communication if policy allows
+assign follow-up
+return to case
+
+J. Blocked actions
+mark case Resolved
+archive case
+suppress communication requirement
+present “Arrival Stabilized” without qualification
+
+K. State transitions
+Common transitions
+S4 → Partially Resolved
+S4 → Resolved only after communication obligation is satisfied
+Partially Resolved → Resolved
+Partially Resolved → Archived only after full closure conditions are met
+
+L. Exact screen copy
+Blocking warning
+Required communication is still pending. This case cannot be fully closed yet.
+Message review title
+Client Message Review
+Primary message
+Review what the client will be told before sending the update.
+Closure support copy
+Full closure requires communication to be completed, waived, or confirmed as unnecessary.
+CTA set
+Send Update
+Approve and Send
+Waive Communication
+Return to Case
+Partial closure variant
+The case is operationally more stable, but client communication is still outstanding.
+
+M. Failure prevention rules
+Communication-pending status must block Resolved.
+Archive must remain unavailable while required communication is open.
+Resolution Summary must reflect operational completion separately from communication completion.
+Waive must be permission- and policy-controlled.
+Communication pending must remain visible in dashboard and summary states.
+
+3. Cross-flow design rules
+These rules apply across all five exception flows.
+Rule 1 — Never hide the reason for the interruption
+Every exception screen must explain:
+what happened
+why it matters
+what the operator should do next
+Rule 2 — The system must fail honestly
+When confidence is low or logic is invalidated, the product must say so directly.
+Rule 3 — Urgency changes screen behavior
+As urgency rises:
+copy gets shorter
+actions narrow
+layout becomes more directive
+non-essential context recedes
+Rule 4 — Do not collapse distinct truths into one status
+The product must distinguish:
+in progress
+partially resolved
+resolved
+failed
+escalated
+archived
+Rule 5 — Audit traceability is mandatory
+Every exception flow must generate visible audit entries:
+recalculation event
+invalidation event
+partial success classification
+recommendation failure
+lock conflict
+communication block
+
+4. Priority mapping by severity
+Highest severity
+Recalculation During Decision
+No Safe Recommendation
+Communication Pending at Closure
+High severity
+Operator Conflict / Lock
+High frequency and medium-to-high severity
+Partial Success
+This matters for UI sequencing and QA test coverage.
+
+5. Recommended QA / prototype pressure-test scenarios
+These should be tested before any “final UI” is considered trustworthy.
+Scenario 1
+Operator is in Confirmation Layer → flight delay worsens → action invalidates → system blocks stale confirmation.
+Scenario 2
+Operator executes recommendation → transfer updates successfully → hotel confirmation fails → system marks Partially Resolved, not Resolved.
+Scenario 3
+Case enters S2 → engine cannot recommend path → system routes to Recovery Required without faking guidance.
+Scenario 4
+Critical case is opened by second operator → lock blocks action → takeover path appears before confirmation attempt.
+Scenario 5
+Case is operationally stabilized → communication still pending → Resolution Summary blocks full closure.
+
+6. Final recommendation
+These five flows are not “advanced polish.” They are the difference between:
+a persuasive concept,
+and a trustworthy operational product.
+Without them, the system says: “I can guide decisions.”
+With them, the system proves: “I can still behave correctly when reality stops being clean.”

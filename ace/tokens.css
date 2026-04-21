@@ -1,0 +1,181 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* Surfaces */
+  --bg-base:      #0C0E14;
+  --bg-surface:   #12151F;
+  --bg-raised:    #181C29;
+  --bg-overlay:   #1E2235;
+  --bg-hover:     #232840;
+
+  /* Borders */
+  --border-dim:   #1F2438;
+  --border-mid:   #2A3050;
+  --border-hi:    #3D4568;
+
+  /* Text */
+  --text-primary:   #E4E7F2;
+  --text-secondary: #8B93B0;
+  --text-muted:     #4E566E;
+  --text-link:      #7A9FFF;
+
+  /* Status — Critical */
+  --critical-bg:     #2D0F10;
+  --critical-border: #7F1D20;
+  --critical-mid:    #EF4444;
+  --critical-text:   #FCA5A5;
+
+  /* Status — Risk / Decision */
+  --risk-bg:     #2C1A06;
+  --risk-border: #78360F;
+  --risk-mid:    #F59E0B;
+  --risk-text:   #FCD34D;
+
+  /* Status — Stable */
+  --stable-bg:     #062316;
+  --stable-border: #14532D;
+  --stable-mid:    #22C55E;
+  --stable-text:   #86EFAC;
+
+  /* Status — In Progress */
+  --progress-bg:     #0A1628;
+  --progress-border: #1E3A6E;
+  --progress-mid:    #3B82F6;
+  --progress-text:   #93C5FD;
+
+  /* Status — Partial */
+  --partial-bg:     #062128;
+  --partial-border: #0E5066;
+  --partial-mid:    #06B6D4;
+  --partial-text:   #67E8F9;
+
+  /* Status — Recovery */
+  --recovery-bg:     #1A0D2C;
+  --recovery-border: #581C87;
+  --recovery-mid:    #A855F7;
+  --recovery-text:   #D8B4FE;
+
+  /* Status — Escalated */
+  --escalated-mid:  #F97316;
+
+  /* AI accent */
+  --ai-bg:     #0E1A30;
+  --ai-border: #1E3A6E;
+  --ai-mid:    #6366F1;
+  --ai-text:   #A5B4FC;
+
+  /* Layout */
+  --sidebar-w: 220px;
+  --topbar-h: 52px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* Type */
+  --font-sans: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
+
+/* Utilities */
+.mono { font-family: var(--font-mono); }
+.muted { color: var(--text-muted); }
+.secondary { color: var(--text-secondary); }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.badge-critical  { background: var(--critical-bg); border: 1px solid var(--critical-border); color: var(--critical-text); }
+.badge-risk      { background: var(--risk-bg);     border: 1px solid var(--risk-border);     color: var(--risk-text); }
+.badge-stable    { background: var(--stable-bg);   border: 1px solid var(--stable-border);   color: var(--stable-text); }
+.badge-progress  { background: var(--progress-bg); border: 1px solid var(--progress-border); color: var(--progress-text); }
+.badge-partial   { background: var(--partial-bg);  border: 1px solid var(--partial-border);  color: var(--partial-text); }
+.badge-recovery  { background: var(--recovery-bg); border: 1px solid var(--recovery-border); color: var(--recovery-text); }
+.badge-ai        { background: var(--ai-bg);       border: 1px solid var(--ai-border);       color: var(--ai-text); }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: var(--radius-sm);
+  font-family: var(--font-sans); font-size: 13px; font-weight: 600;
+  cursor: pointer; border: none; transition: all 0.15s;
+  letter-spacing: 0.01em;
+}
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primary { background: var(--progress-mid); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: #5B9BFF; }
+.btn-critical { background: var(--critical-mid); color: #fff; }
+.btn-critical:hover:not(:disabled) { background: #F87171; }
+.btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid var(--border-mid); }
+.btn-ghost:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-hi); }
+.btn-ai { background: var(--ai-mid); color: #fff; }
+.btn-ai:hover:not(:disabled) { background: #818CF8; }
+.btn-danger { background: transparent; color: var(--critical-mid); border: 1px solid var(--critical-border); }
+.btn-danger:hover:not(:disabled) { background: var(--critical-bg); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-lg { padding: 11px 22px; font-size: 14px; }
+
+.divider { height: 1px; background: var(--border-dim); width: 100%; }
+
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-md);
+}
+
+input[type="text"], textarea, select {
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  padding: 8px 12px;
+  outline: none;
+  width: 100%;
+}
+input[type="text"]:focus, textarea:focus {
+  border-color: var(--progress-mid);
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.15);
+}
+
+/* Animations */
+@keyframes fadeIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes slideIn { from { transform: translateX(12px); opacity:0; } to { transform: translateX(0); opacity:1; } }
+@keyframes flashBorder { 0%,100% { border-color: var(--critical-border); } 50% { border-color: var(--critical-mid); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.anim-fade { animation: fadeIn 0.25s ease both; }
+.anim-slide { animation: slideIn 0.2s ease both; }
